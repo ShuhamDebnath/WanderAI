@@ -1,48 +1,76 @@
 package com.shuham.wanderai
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.safeContentPadding
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import org.jetbrains.compose.resources.painterResource
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.shuham.wanderai.navigation.Login
+import com.shuham.wanderai.navigation.Main
+import com.shuham.wanderai.navigation.SignUp
+import com.shuham.wanderai.navigation.Splash
+import com.shuham.wanderai.presentation.auth.login.LoginRoute
+import com.shuham.wanderai.presentation.auth.signup.SignUpRoute
+import com.shuham.wanderai.presentation.main.MainScreen
+import com.shuham.wanderai.presentation.splash.SplashScreen
+import com.shuham.wanderai.theme.WanderAITheme
 import org.jetbrains.compose.ui.tooling.preview.Preview
-
-import wanderai.composeapp.generated.resources.Res
-import wanderai.composeapp.generated.resources.compose_multiplatform
 
 @Composable
 @Preview
 fun App() {
-    MaterialTheme {
-        var showContent by remember { mutableStateOf(false) }
-        Column(
-            modifier = Modifier
-                .background(MaterialTheme.colorScheme.primaryContainer)
-                .safeContentPadding()
-                .fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
+    WanderAITheme {
+        val navController = rememberNavController()
+
+        NavHost(
+            navController = navController,
+            startDestination = Splash,
+            modifier = Modifier.fillMaxSize()
         ) {
-            Button(onClick = { showContent = !showContent }) {
-                Text("Click me!")
+            composable<Splash> {
+                SplashScreen(
+                    onNavigateToLogin = {
+                        navController.navigate(Login) {
+                            popUpTo(Splash) { inclusive = true }
+                        }
+                    },
+                    onNavigateToMain = {
+                        navController.navigate(Main) {
+                            popUpTo(Splash) { inclusive = true }
+                        }
+                    }
+                )
             }
-            AnimatedVisibility(showContent) {
-                val greeting = remember { Greeting().greet() }
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Image(painterResource(Res.drawable.compose_multiplatform), null)
-                    Text("Compose: $greeting")
-                }
+
+            composable<Login> {
+                LoginRoute(
+                    onLoginSuccess = {
+                        navController.navigate(Main) {
+                            popUpTo(Login) { inclusive = true }
+                        }
+                    },
+                    onNavigateToSignUp = {
+                        navController.navigate(SignUp)
+                    }
+                )
+            }
+
+            composable<SignUp> {
+                SignUpRoute(
+                    onSignUpSuccess = {
+                        navController.navigate(Main) {
+                            popUpTo(SignUp) { inclusive = true }
+                        }
+                    },
+                    onNavigateToLogin = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+
+            composable<Main> {
+                MainScreen()
             }
         }
     }
