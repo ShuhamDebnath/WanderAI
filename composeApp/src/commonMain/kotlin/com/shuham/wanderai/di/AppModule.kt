@@ -1,6 +1,5 @@
 package com.shuham.wanderai.di
 
-import com.shuham.wanderai.data.GeminiService
 import com.shuham.wanderai.data.OpenRouterService
 import com.shuham.wanderai.data.repository.AuthRepositoryImpl
 import com.shuham.wanderai.data.repository.TripRepositoryImpl

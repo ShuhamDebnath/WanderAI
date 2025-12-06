@@ -1,6 +1,6 @@
 package com.shuham.wanderai.domain.repository
 
-import com.shuham.wanderai.data.TripItinerary
+import com.shuham.wanderai.data.model.TripItinerary
 import com.shuham.wanderai.data.model.TripRequest
 import com.shuham.wanderai.util.NetworkResult
 

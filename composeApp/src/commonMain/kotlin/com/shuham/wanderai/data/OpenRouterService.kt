@@ -18,7 +18,9 @@ class OpenRouterService(private val client: HttpClient) {
 
     private val apiKey = BuildConfig.OPENROUTER_API_KEY
     private val url = "https://openrouter.ai/api/v1/chat/completions"
-    private val model = "deepseek/deepseek-chat-v3.1"
+
+    //private val model = "meta-llama/llama-3.3-70b-instruct:free"
+    private val model = "tngtech/deepseek-r1t2-chimera:free"
 
 
 

@@ -6,13 +6,13 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class TripItinerary(
     val tripName: String,
-    val dailyPlan: List<DayPlan>
+    val dailyPlan: List<ItineraryDayPlan>
 )
 
 @Serializable
-data class DayPlan(
-    val day: Int,
-    val activities: List<Activity>
+data class ItineraryDayPlan(
+    val day: Int,                 // Matches JSON "day"
+    val activities: List<Activity> // Matches JSON "activities" directly
 )
 
 @Serializable
@@ -20,5 +20,5 @@ data class Activity(
     val time: String,
     val title: String,
     val description: String,
-    val type: String // e.g., "food", "sightseeing"
+    val type: String
 )
