@@ -1,9 +1,8 @@
 package com.shuham.wanderai.data
 
 import com.shuham.wanderai.BuildConfig
-import com.shuham.wanderai.data.model.TripItinerary
+import com.shuham.wanderai.data.model.TripResponse
 import io.ktor.client.HttpClient
-import io.ktor.client.call.body
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -20,9 +19,8 @@ class OpenRouterService(private val client: HttpClient) {
     private val url = "https://openrouter.ai/api/v1/chat/completions"
 
     //private val model = "meta-llama/llama-3.3-70b-instruct:free"
-    private val model = "tngtech/deepseek-r1t2-chimera:free"
-
-
+    //private val model = "tngtech/deepseek-r1t2-chimera:free"
+    private val model = "amazon/nova-2-lite-v1:free"
 
 
     private val jsonParser = Json {
@@ -37,7 +35,7 @@ class OpenRouterService(private val client: HttpClient) {
         travelers: String,
         interests: List<String>,
         diet: List<String>
-    ): TripItinerary? {
+    ): TripResponse? {
 
         val prompt = """
             Plan a $days-day trip to $destination.
@@ -49,15 +47,46 @@ class OpenRouterService(private val client: HttpClient) {
             You MUST return a JSON object matching exactly this structure:
             {
               "tripName": "String",
-              "dailyPlan": [
+              "destinations": ["String"],
+              "days": [
                 {
-                  "day": 1,
-                  "activities": [
-                    { "time": "09:00 AM", "title": "Place Name", "description": "Short details", "type": "sightseeing" }
+                  "dayNumber": 1,
+                  "city": "String",
+                  "narrative": "A brief summary of the day",
+                  "sections": [
+                    {
+                      "timeOfDay": "Morning",
+                      "activities": [
+                        {
+                          "type": "SIGHTSEEING", 
+                          "placeName": "Name of place",
+                          "coordinates": { "lat": 0.0, "lng": 0.0 },
+                          "description": "Short description",
+                          "estimatedDuration": "2 hours"
+                        },
+                        {
+                          "type": "FOOD_OPTION",
+                          "title": "Lunch Recommendation",
+                          "options": [
+                            {
+                              "name": "Restaurant Name",
+                              "tag": "Best Match", 
+                              "priceLevel": "$$",
+                              "description": "Why it fits",
+                              "isRecommended": true
+                            }
+                          ]
+                        }
+                      ]
+                    }
                   ]
                 }
               ]
             }
+            
+            Valid 'type' values: SIGHTSEEING, TRANSPORT, CHECK_IN, FOOD_OPTION, HOTEL_OPTION.
+            Valid 'timeOfDay' values: Morning, Afternoon, Evening.
+            Provide 3 options for FOOD_OPTION/HOTEL_OPTION (Best Match, Cheapest, Luxury).
             Do not include markdown formatting. Just raw JSON.
         """.trimIndent()
 
@@ -70,7 +99,7 @@ class OpenRouterService(private val client: HttpClient) {
             response_format = ResponseFormat(type = "json_object") // Force JSON
         )
 
-        println("pass 1: Sending request to OpenRouter")
+        println("pass 1: Sending request to OpenRouter $url")
 
         return try {
             val response = client.post(url) {
@@ -104,9 +133,9 @@ class OpenRouterService(private val client: HttpClient) {
 
             // Parse final Itinerary
             if (content.startsWith("[")) {
-                jsonParser.decodeFromString<List<TripItinerary>>(content).firstOrNull()
+                jsonParser.decodeFromString<List<TripResponse>>(content).firstOrNull()
             } else {
-                jsonParser.decodeFromString<TripItinerary>(content)
+                jsonParser.decodeFromString<TripResponse>(content)
             }
 
         } catch (e: Exception) {

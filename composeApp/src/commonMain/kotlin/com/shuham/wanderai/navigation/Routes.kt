@@ -30,7 +30,9 @@ object Profile
 
 // --- Trip Generation Flow ---
 
-// Note: Loading is now a state within Home, not a route.
+@Serializable
+data class TripDetails(val tripId: String)
+
 
 @Serializable
-data class Itinerary(val tripId: String)
+object Test

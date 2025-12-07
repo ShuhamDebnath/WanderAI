@@ -1,6 +1,7 @@
 package com.shuham.wanderai.di
 
 import com.shuham.wanderai.data.OpenRouterService
+import com.shuham.wanderai.data.local.AppDatabase
 import com.shuham.wanderai.data.repository.AuthRepositoryImpl
 import com.shuham.wanderai.data.repository.TripRepositoryImpl
 import com.shuham.wanderai.domain.repository.AuthRepository
@@ -9,18 +10,21 @@ import com.shuham.wanderai.presentation.auth.login.LoginViewModel
 import com.shuham.wanderai.presentation.auth.signup.SignUpViewModel
 import com.shuham.wanderai.presentation.home.HomeViewModel
 import com.shuham.wanderai.presentation.splash.SplashViewModel
+import com.shuham.wanderai.presentation.trip_details.TripDetailsViewModel
+import com.shuham.wanderai.presentation.trips.TripsViewModel
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
+import org.koin.compose.viewmodel.dsl.viewModelOf
 import org.koin.core.module.dsl.singleOf
-import org.koin.core.module.dsl.viewModelOf
+import org.koin.core.scope.Scope
 import org.koin.dsl.bind
 import org.koin.dsl.module
 
 val appModule = module {
-    // Network Client
+    // Network
     single {
         HttpClient {
             install(ContentNegotiation) {
@@ -30,18 +34,18 @@ val appModule = module {
                     ignoreUnknownKeys = true
                 })
             }
-            // --- ADD THIS TIMEOUT BLOCK ---
             install(HttpTimeout) {
-                requestTimeoutMillis = 120_000 // 2 Minutes (AI needs time!)
+                requestTimeoutMillis = 120_000
                 connectTimeoutMillis = 60_000
                 socketTimeoutMillis = 120_000
             }
-            // -----------------------------
         }
     }
-
-    // Services
     singleOf(::OpenRouterService)
+
+    // Database
+    single { getDatabase(this) } 
+    single { get<AppDatabase>().tripDao() }
 
     // Repositories
     singleOf(::TripRepositoryImpl) bind TripRepository::class
@@ -52,4 +56,8 @@ val appModule = module {
     viewModelOf(::LoginViewModel)
     viewModelOf(::SignUpViewModel)
     viewModelOf(::SplashViewModel)
+    viewModelOf(::TripDetailsViewModel)
+    viewModelOf(::TripsViewModel)
 }
+
+expect fun getDatabase(scope: Scope): AppDatabase

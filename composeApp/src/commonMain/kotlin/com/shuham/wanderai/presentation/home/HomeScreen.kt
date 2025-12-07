@@ -66,18 +66,18 @@ import com.shuham.wanderai.theme.WanderAITheme
 @Composable
 fun HomeRoute(
     viewModel: HomeViewModel = koinViewModel(),
-    onNavigateToItinerary: (String) -> Unit
+    onNavigateToTripDetails: (String) -> Unit
 ) {
     val state by viewModel.state.collectAsState()
-    
+
     LaunchedEffect(viewModel.events) {
         viewModel.events.collect { event ->
             when (event) {
-                is HomeEvent.NavigateToItinerary -> onNavigateToItinerary(event.tripId)
+                is HomeEvent.NavigateToTripDetails -> onNavigateToTripDetails(event.tripId)
             }
         }
     }
-    
+
     HomeScreen(
         state = state,
         onAction = viewModel::onAction
@@ -100,9 +100,9 @@ fun HomeScreen(
                 .padding(16.dp)
         ) {
             HomeHeader(userName = state.userName)
-            
+
             Spacer(modifier = Modifier.height(24.dp))
-            
+
             DestinationInputSection(destinations = state.destinations, onAction = onAction)
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -124,10 +124,10 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             PlanTripButton(onClick = { onAction(HomeAction.OnPlanTripClicked) }, isLoading = state.isLoading)
-            
+
             Spacer(modifier = Modifier.height(32.dp))
         }
-        
+
         // --- Overlays ---
 
         AnimatedVisibility(
@@ -234,7 +234,7 @@ fun DestinationInputSection(
                     Spacer(modifier = Modifier.height(8.dp))
                 }
             }
-            
+
             TextButton(onClick = { onAction(HomeAction.OnAddDestination) }) {
                 Text("+ Add Destination", color = MaterialTheme.colorScheme.secondary)
             }
@@ -260,7 +260,7 @@ fun TravelerTypeSection(
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(12.dp))
-            
+
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -319,7 +319,7 @@ fun DatesAndDurationSection(
             ) {
                 Row {
                     val modifier = Modifier.weight(1f).clip(RoundedCornerShape(50)).padding(vertical = 8.dp)
-                    
+
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = modifier
@@ -332,7 +332,7 @@ fun DatesAndDurationSection(
                             fontWeight = if (!isFlexible) FontWeight.Bold else FontWeight.Normal
                         )
                     }
-                    
+
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = modifier
@@ -360,13 +360,13 @@ fun DatesAndDurationSection(
                     ) {
                         Icon(Icons.Default.Remove, contentDescription = "Decrease")
                     }
-                    
+
                     Text(
                         text = "$durationDays Days",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
-                    
+
                     IconButton(
                         onClick = { onAction(HomeAction.OnDurationChanged(durationDays + 1)) },
                         modifier = Modifier.background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
@@ -458,11 +458,11 @@ fun PersonalizationSection(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
-            
+
             // Diet
             Spacer(modifier = Modifier.height(12.dp))
             Text("Diet", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-            
+
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -504,7 +504,7 @@ fun PersonalizationSection(
             // Interests
             Spacer(modifier = Modifier.height(16.dp))
             Text("Interests", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-            
+
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),

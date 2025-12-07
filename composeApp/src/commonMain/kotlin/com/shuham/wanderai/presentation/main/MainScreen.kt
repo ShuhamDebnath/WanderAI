@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -22,14 +23,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.toRoute
 import com.shuham.wanderai.navigation.Home
-import com.shuham.wanderai.navigation.Itinerary
 import com.shuham.wanderai.navigation.Profile
+import com.shuham.wanderai.navigation.Test
+import com.shuham.wanderai.navigation.TripDetails
 import com.shuham.wanderai.navigation.Trips
 import com.shuham.wanderai.presentation.home.HomeRoute
-import com.shuham.wanderai.presentation.loading.LoadingScreen
 import com.shuham.wanderai.presentation.profile.ProfileScreen
+import com.shuham.wanderai.presentation.trip_details.TripDetailsRoute
 import com.shuham.wanderai.presentation.trips.TripsScreen
 
 @Composable
@@ -39,7 +40,8 @@ fun MainScreen() {
     val items = listOf(
         NavigationItem("Home", Home, Icons.Default.Home),
         NavigationItem("Trips", Trips, Icons.Default.DateRange),
-        NavigationItem("Profile", Profile, Icons.Default.Person)
+        NavigationItem("Profile", Profile, Icons.Default.Person),
+        //NavigationItem("Test", Test, Icons.Default.MoreVert)
     )
 
     Scaffold(
@@ -47,7 +49,6 @@ fun MainScreen() {
             val navBackStackEntry by navController.currentBackStackEntryAsState()
             val currentDestination = navBackStackEntry?.destination
             
-            // Check if we are on a top-level tab
             val isTopLevel = items.any { item ->
                  currentDestination?.hierarchy?.any { 
                      it.route == item.route::class.qualifiedName 
@@ -87,38 +88,28 @@ fun MainScreen() {
         ) {
             composable<Home> {
                 HomeRoute(
-                    onNavigateToItinerary = { request ->
-                        navController.navigate(Itinerary(request))
+                    onNavigateToTripDetails = { tripId ->
+                        navController.navigate(TripDetails(tripId))
                     }
                 )
             }
             
-            composable<Trips> { TripsScreen() }
+            composable<Trips> { 
+                TripsScreen(
+                    onNavigateToTripDetails = { tripId ->
+                        navController.navigate(TripDetails(tripId))
+                    }
+                )
+            }
             
             composable<Profile> { ProfileScreen() }
             
-            // --- Full Screen Flows ---
-
-//            composable<Loading> { backStackEntry ->
-//                val route = backStackEntry.toRoute<Loading>()
-//                LoadingScreen(
-//                    request = route.request,
-//                    onTripGenerated = { response ->
-//                        navController.navigate(Itinerary(response)) {
-//                             // Remove Loading from backstack
-//                             popUpTo(Home) { inclusive = false }
-//                        }
-//                    },
-//                    onNavigateBack = { navController.popBackStack() }
-//                )
-//            }
-            
-            composable<Itinerary> { backStackEntry ->
-                val route = backStackEntry.toRoute<Itinerary>()
-                // Placeholder for Itinerary
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                     Text("Itinerary for ${route.tripId} Generated!")
-                }
+            composable<TripDetails> {
+                TripDetailsRoute(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            composable<Test> {
             }
         }
     }

@@ -12,6 +12,7 @@ data class TripRequest(
     val diet: List<String>
 )
 
+
 @Serializable
 data class TripResponse(
     val tripName: String,
@@ -30,31 +31,36 @@ data class DayPlan(
 @Serializable
 data class DaySection(
     val timeOfDay: String, // Morning, Afternoon, Evening
-    val activities: List<ActivityItem>
+    val activities: List<Activity>
 )
 
 @Serializable
-data class ActivityItem(
+data class Activity(
     val type: String, // SIGHTSEEING, FOOD_OPTION, etc.
-    val title: String? = null, // Only for options
-    val placeName: String? = null, // For single items
-    val description: String,
+    // Fields for Sightseeing/Transport
+    val placeName: String? = null,
+    val coordinates: Coordinates? = null,
+    val description: String? = null,
     val estimatedDuration: String? = null,
-    val coordinates: GeoPoint? = null,
-    val options: List<PlaceOption>? = null // For Food/Hotel choices
+    // Fields for Options (Food/Hotel)
+    val title: String? = null,
+    val options: List<ActivityOption>? = null
 )
 
-@Serializable
-data class PlaceOption(
-    val name: String,
-    val tag: String, // Best Match, Cheapest, etc.
-    val priceLevel: String,
-    val description: String,
-    val isRecommended: Boolean
-)
+
+
 
 @Serializable
-data class GeoPoint(
+data class Coordinates(
     val lat: Double,
     val lng: Double
+)
+
+@Serializable
+data class ActivityOption(
+    val name: String,
+    val tag: String, // Best Match, Cheapest, etc.
+    val priceLevel: String, // $, $$, $$$
+    val description: String,
+    val isRecommended: Boolean
 )

@@ -15,7 +15,7 @@ import kotlinx.coroutines.launch
 
 // One-time events for Navigation
 sealed interface HomeEvent {
-    data class NavigateToItinerary(val tripId: String) : HomeEvent
+    data class NavigateToTripDetails(val tripId: String) : HomeEvent
 }
 
 class HomeViewModel(
@@ -28,7 +28,6 @@ class HomeViewModel(
     private val _events = Channel<HomeEvent>()
     val events = _events.receiveAsFlow()
 
-    // --- Single Entry Point for Actions ---
     fun onAction(action: HomeAction) {
         when (action) {
             is HomeAction.OnDestinationChanged -> onDestinationChanged(action.index, action.newValue)
@@ -131,7 +130,7 @@ class HomeViewModel(
                     result.data?.let {
                         val id = repository.saveTrip(it)
                         _state.update { state -> state.copy(isLoading = false) }
-                        _events.send(HomeEvent.NavigateToItinerary(id))
+                        _events.send(HomeEvent.NavigateToTripDetails(id))
                     } ?: _state.update { it.copy(isLoading = false, errorMessage = "Received empty response from API.") }
                 }
                 is NetworkResult.Error -> {
