@@ -9,6 +9,7 @@ import com.shuham.wanderai.domain.repository.TripRepository
 import com.shuham.wanderai.presentation.auth.login.LoginViewModel
 import com.shuham.wanderai.presentation.auth.signup.SignUpViewModel
 import com.shuham.wanderai.presentation.home.HomeViewModel
+import com.shuham.wanderai.presentation.map.MapViewModel
 import com.shuham.wanderai.presentation.splash.SplashViewModel
 import com.shuham.wanderai.presentation.trip_details.TripDetailsViewModel
 import com.shuham.wanderai.presentation.trips.TripsViewModel
@@ -17,8 +18,8 @@ import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
-import org.koin.compose.viewmodel.dsl.viewModelOf
 import org.koin.core.module.dsl.singleOf
+import org.koin.core.module.dsl.viewModelOf
 import org.koin.core.scope.Scope
 import org.koin.dsl.bind
 import org.koin.dsl.module
@@ -58,6 +59,7 @@ val appModule = module {
     viewModelOf(::SplashViewModel)
     viewModelOf(::TripDetailsViewModel)
     viewModelOf(::TripsViewModel)
+    viewModelOf(::MapViewModel)
 }
 
 expect fun getDatabase(scope: Scope): AppDatabase

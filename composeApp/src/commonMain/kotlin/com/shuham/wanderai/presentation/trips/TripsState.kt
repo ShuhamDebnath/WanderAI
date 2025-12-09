@@ -5,7 +5,9 @@ import com.shuham.wanderai.data.model.TripResponse
 data class TripsState(
     val trips: List<TripItem> = emptyList(),
     val searchQuery: String = "",
-    val isLoading: Boolean = true
+    val isLoading: Boolean = true,
+    val tripToDelete: TripItem? = null,
+    val showDeleteConfirmation: Boolean = false
 )
 
 data class TripItem(
@@ -19,4 +21,7 @@ data class TripItem(
 sealed interface TripsAction {
     data class OnSearchQueryChanged(val query: String) : TripsAction
     data class OnTripClicked(val tripId: String) : TripsAction
+    data class OnDeleteTripClicked(val trip: TripItem) : TripsAction
+    object OnConfirmDelete : TripsAction
+    object OnDismissDeleteDialog : TripsAction
 }

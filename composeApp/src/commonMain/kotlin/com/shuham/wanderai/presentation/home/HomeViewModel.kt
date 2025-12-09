@@ -3,6 +3,7 @@ package com.shuham.wanderai.presentation.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shuham.wanderai.data.model.TripRequest
+import com.shuham.wanderai.data.model.TripResponse
 import com.shuham.wanderai.domain.repository.TripRepository
 import com.shuham.wanderai.util.NetworkResult
 import kotlinx.coroutines.channels.Channel
@@ -128,9 +129,8 @@ class HomeViewModel(
             when (val result = repository.generateTrip(request)) {
                 is NetworkResult.Success -> {
                     result.data?.let {
-                        val id = repository.saveTrip(it)
                         _state.update { state -> state.copy(isLoading = false) }
-                        _events.send(HomeEvent.NavigateToTripDetails(id))
+                        _events.send(HomeEvent.NavigateToTripDetails(it.id))
                     } ?: _state.update { it.copy(isLoading = false, errorMessage = "Received empty response from API.") }
                 }
                 is NetworkResult.Error -> {

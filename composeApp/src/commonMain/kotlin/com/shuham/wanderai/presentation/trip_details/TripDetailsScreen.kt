@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.Button
@@ -45,6 +46,7 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -72,23 +74,30 @@ import com.shuham.wanderai.data.model.TripResponse
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 
-// Custom Colors from Design System
-val OceanTeal = Color(0xFF006D77)
-val SunsetCoral = Color(0xFFE29578)
-val AliceBlue = Color(0xFFEDF6F9)
-val SageGreen = Color(0xFF83C5BE)
-
 @Composable
 fun TripDetailsRoute(
     viewModel: TripDetailsViewModel = koinViewModel(),
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToMap: (String, Int) -> Unit
 ) {
     val state by viewModel.state.collectAsState()
+    println("tripId ${ state.trip?.id }")
+
+    LaunchedEffect(viewModel.events) {
+        viewModel.events.collect {
+            when (it) {
+                is TripDetailsEvent.NavigateToMap -> {
+                    onNavigateToMap(it.tripId, it.dayNumber)
+                }
+            }
+        }
+    }
 
     TripDetailsScreen(
         state = state,
         onAction = viewModel::onAction,
-        onNavigateBack = onNavigateBack
+        onNavigateBack = onNavigateBack,
+        onNavigateToMap = { viewModel.onAction(TripDetailsAction.OnNavigateToMap) }
     )
 }
 
@@ -97,14 +106,11 @@ fun TripDetailsRoute(
 fun TripDetailsScreen(
     state: TripDetailsState,
     onAction: (TripDetailsAction) -> Unit,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToMap: () -> Unit
 ) {
-    val itinerary = state.trip
-    // Note: using index vs dayNumber requires careful mapping.
-    // Assuming selectedDay in state corresponds to the list index for tabs logic
-    // Ideally we map selectedDay (Int) to the actual day number or index.
-    // The reference code used index.
-    val currentDayPlan = itinerary?.days?.getOrNull(state.selectedDay) // Assuming selectedDay is 0-based index for this logic, if 1-based subtract 1
+    val tripData = state.trip
+    val currentDayPlan = tripData?.days?.getOrNull(state.selectedDay)
     
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -121,8 +127,8 @@ fun TripDetailsScreen(
                             snackbarHostState.showSnackbar("Feature Coming Soon: Add your own places!")
                         }
                     },
-                    containerColor = SunsetCoral,
-                    contentColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.secondary,
+                    contentColor = MaterialTheme.colorScheme.onSecondary
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "Add Activity")
                 }
@@ -131,24 +137,22 @@ fun TripDetailsScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(AliceBlue)
+                    .background(MaterialTheme.colorScheme.background)
                     .padding(bottom = innerPadding.calculateBottomPadding())
             ) {
-                // 1. Hero Header
-                if (itinerary != null) {
-                    HeroHeader(itinerary, onNavigateBack)
+                if (tripData != null) {
+                    HeroHeader(tripData, onNavigateBack, onNavigateToMap)
                 }
 
-                // 2. Day Tabs
-                if (itinerary != null && itinerary.days.isNotEmpty()) {
+                if (tripData != null && tripData.days.isNotEmpty()) {
                     SecondaryScrollableTabRow(
                         selectedTabIndex = state.selectedDay,
-                        containerColor = Color.White,
-                        contentColor = OceanTeal,
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        contentColor = MaterialTheme.colorScheme.primary,
                         edgePadding = 16.dp,
                         divider = {} 
                     ) {
-                        itinerary.days.forEachIndexed { index, dayPlan ->
+                        tripData.days.forEachIndexed { index, dayPlan ->
                             Tab(
                                 selected = state.selectedDay == index,
                                 onClick = { onAction(TripDetailsAction.OnDaySelected(index)) },
@@ -156,7 +160,7 @@ fun TripDetailsScreen(
                                     Text(
                                         text = "Day ${dayPlan.dayNumber}",
                                         fontWeight = if (state.selectedDay == index) FontWeight.Bold else FontWeight.Normal,
-                                        color = if (state.selectedDay == index) OceanTeal else Color.Gray
+                                        color = if (state.selectedDay == index) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             )
@@ -164,27 +168,23 @@ fun TripDetailsScreen(
                     }
                 }
 
-                // 3. Timeline View
-                if (currentDayPlan != null && itinerary != null) {
+                if (currentDayPlan != null) {
                     LazyColumn(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        // Day Narrative
                         item {
                             Row(modifier = Modifier.padding(vertical = 8.dp)) {
                                 Box(
                                     modifier = Modifier
                                         .width(4.dp)
                                         .height(40.dp)
-                                        .background(SunsetCoral, RoundedCornerShape(2.dp))
+                                        .background(MaterialTheme.colorScheme.secondary, RoundedCornerShape(2.dp))
                                 )
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Text(
                                     text = currentDayPlan.narrative,
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        color = Color.Gray
-                                    )
+                                    style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 )
                             }
                         }
@@ -195,7 +195,7 @@ fun TripDetailsScreen(
                                     text = section.timeOfDay,
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         fontWeight = FontWeight.Bold,
-                                        color = OceanTeal
+                                        color = MaterialTheme.colorScheme.primary
                                     ),
                                     modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
                                 )
@@ -214,22 +214,21 @@ fun TripDetailsScreen(
                     }
                 } else if (state.isLoading) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Loading Itinerary...", color = Color.Gray)
+                        Text("Loading Itinerary...", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 } else {
                      Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Error or No Data: ${state.errorMessage}", color = Color.Gray)
+                        Text("Error or No Data: ${state.errorMessage}", color = MaterialTheme.colorScheme.error)
                     }
                 }
             }
         }
 
-        // 4. Details Bottom Sheet
         if (state.selectedActivity != null || state.selectedOption != null) {
             ModalBottomSheet(
                 onDismissRequest = { onAction(TripDetailsAction.OnDismissBottomSheet) },
                 sheetState = bottomSheetState,
-                containerColor = Color.White
+                containerColor = MaterialTheme.colorScheme.surface
             ) {
                 if (state.selectedActivity != null) {
                     ActivityDetailsContent(
@@ -248,14 +247,13 @@ fun TripDetailsScreen(
 }
 
 @Composable
-fun HeroHeader(itinerary: TripResponse, onBackClick: () -> Unit) {
+fun HeroHeader(tripData: TripResponse, onBackClick: () -> Unit, onMapClick: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(220.dp)
     ) {
-        // Use LoremFlickr for consistent travel images
-        val destination = itinerary.destinations.firstOrNull()?.replace(" ", ",") ?: "travel"
+        val destination = tripData.destinations.firstOrNull()?.replace(" ", ",") ?: "travel"
         AsyncImage(
             model = "https://loremflickr.com/800/400/$destination,landmark",
             contentDescription = "Destination Image",
@@ -274,14 +272,23 @@ fun HeroHeader(itinerary: TripResponse, onBackClick: () -> Unit) {
                 )
         )
         
-        IconButton(
-            onClick = onBackClick,
-            modifier = Modifier
-                .padding(16.dp)
-                .align(Alignment.TopStart)
-                .background(Color.Black.copy(alpha = 0.3f), CircleShape)
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
         ) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+            IconButton(
+                onClick = onBackClick,
+                modifier = Modifier.background(Color.Black.copy(alpha = 0.3f), CircleShape)
+            ) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+            }
+            IconButton(
+                onClick = onMapClick,
+                modifier = Modifier.background(Color.Black.copy(alpha = 0.3f), CircleShape)
+            ) {
+                Icon(Icons.Default.Map, contentDescription = "Show on Map", tint = Color.White)
+            }
         }
         
         Column(
@@ -290,7 +297,7 @@ fun HeroHeader(itinerary: TripResponse, onBackClick: () -> Unit) {
                 .padding(20.dp)
         ) {
             Text(
-                text = itinerary.tripName,
+                text = tripData.tripName,
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Bold,
                     color = Color.White
@@ -301,7 +308,7 @@ fun HeroHeader(itinerary: TripResponse, onBackClick: () -> Unit) {
                 Icon(Icons.Default.Place, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "${itinerary.days.size} Days • ${itinerary.destinations.joinToString(", ")}",
+                    text = "${tripData.days.size} Days • ${tripData.destinations.joinToString(", ")}",
                     style = MaterialTheme.typography.bodyMedium.copy(
                         color = Color.White.copy(alpha = 0.9f)
                     )
@@ -318,6 +325,7 @@ fun TimelineItem(
     onOptionClick: (ActivityOption) -> Unit
 ) {
     var isChecked by remember { mutableStateOf(false) }
+    val timelineColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
 
     Row(
         modifier = Modifier
@@ -326,14 +334,13 @@ fun TimelineItem(
                 val strokeWidth = 2.dp.toPx()
                 val lineX = 12.dp.toPx()
                 drawLine(
-                    color = OceanTeal.copy(alpha = 0.3f),
+                    color = timelineColor,
                     start = Offset(lineX, 0f),
                     end = Offset(lineX, size.height),
                     strokeWidth = strokeWidth
                 )
             }
     ) {
-        // Timeline Checkbox
         Box(
             modifier = Modifier
                 .width(24.dp)
@@ -343,14 +350,14 @@ fun TimelineItem(
             Box(
                 modifier = Modifier
                     .size(24.dp)
-                    .background(AliceBlue, CircleShape)
+                    .background(MaterialTheme.colorScheme.background, CircleShape)
             )
             Checkbox(
                 checked = isChecked,
                 onCheckedChange = { isChecked = it },
                 colors = CheckboxDefaults.colors(
-                    checkedColor = OceanTeal,
-                    uncheckedColor = OceanTeal.copy(alpha = 0.6f)
+                    checkedColor = MaterialTheme.colorScheme.primary,
+                    uncheckedColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
                 ),
                 modifier = Modifier.size(20.dp)
             )
@@ -359,7 +366,6 @@ fun TimelineItem(
         Spacer(modifier = Modifier.width(16.dp))
 
         Box(modifier = Modifier.weight(1f)) {
-            // Distinguish between options and single activities
             if (!activity.options.isNullOrEmpty()) {
                  SimpleChoiceCarousel(
                         activity = activity,
@@ -390,7 +396,7 @@ fun SimpleActivityCard(
             .padding(bottom = 12.dp)
             .alpha(cardAlpha)
             .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         shape = RoundedCornerShape(12.dp)
     ) {
@@ -399,9 +405,9 @@ fun SimpleActivityCard(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "09:00 AM", // e.g. "09:00 AM"
+                    text = activity.time,
                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                    color = OceanTeal
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
 
@@ -413,7 +419,7 @@ fun SimpleActivityCard(
                     fontWeight = FontWeight.Bold,
                     textDecoration = if (isChecked) TextDecoration.LineThrough else null
                 ),
-                color = if (isChecked) Color.Gray else Color.Black
+                color = if (isChecked) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
             )
 
             if (activity.description != null) {
@@ -421,7 +427,7 @@ fun SimpleActivityCard(
                 Text(
                     text = activity.description,
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -440,7 +446,7 @@ fun SimpleChoiceCarousel(
             text = activity.title ?: "Options",
             style = MaterialTheme.typography.labelMedium.copy(
                 fontWeight = FontWeight.Bold,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             ),
             modifier = Modifier.padding(bottom = 8.dp)
         )
@@ -460,7 +466,7 @@ fun SmallChoiceCard(option: ActivityOption, onClick: () -> Unit) {
             .width(160.dp)
             .height(180.dp)
             .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
         shape = RoundedCornerShape(12.dp)
     ) {
@@ -476,14 +482,14 @@ fun SmallChoiceCard(option: ActivityOption, onClick: () -> Unit) {
                     Box(
                         modifier = Modifier
                             .padding(4.dp)
-                            .background(SunsetCoral, RoundedCornerShape(4.dp))
+                            .background(MaterialTheme.colorScheme.secondary, RoundedCornerShape(4.dp))
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                             .align(Alignment.TopStart)
                     ) {
                         Text(
                             text = "Best",
                             style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
-                            color = Color.White
+                            color = MaterialTheme.colorScheme.onSecondary
                         )
                     }
                 }
@@ -492,7 +498,7 @@ fun SmallChoiceCard(option: ActivityOption, onClick: () -> Unit) {
                 Text(
                     text = option.tag,
                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                    color = SageGreen,
+                    color = MaterialTheme.colorScheme.tertiary,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -515,13 +521,13 @@ fun ActivityDetailsContent(activity: Activity, onNavigate: () -> Unit) {
         Text(
             text = activity.placeName ?: activity.title ?: "Details",
             style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-            color = OceanTeal
+            color = MaterialTheme.colorScheme.primary
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "09:00 AM",
+            text = activity.time,
             style = MaterialTheme.typography.bodyMedium,
-            color = Color.Gray
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
@@ -532,7 +538,7 @@ fun ActivityDetailsContent(activity: Activity, onNavigate: () -> Unit) {
         Button(
             onClick = onNavigate,
             modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = OceanTeal)
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
         ) {
             Icon(Icons.Default.Navigation, null)
             Spacer(modifier = Modifier.width(8.dp))
@@ -555,19 +561,19 @@ fun OptionDetailsContent(option: ActivityOption, onNavigate: () -> Unit) {
             Text(
                 text = option.name,
                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                color = OceanTeal,
+                color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.weight(1f)
             )
             Text(
                 text = option.priceLevel,
                 style = MaterialTheme.typography.titleMedium,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         Text(
             text = option.tag,
             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-            color = SageGreen
+            color = MaterialTheme.colorScheme.tertiary
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
@@ -578,7 +584,7 @@ fun OptionDetailsContent(option: ActivityOption, onNavigate: () -> Unit) {
         Button(
             onClick = onNavigate,
             modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = OceanTeal)
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
         ) {
             Icon(Icons.Default.Navigation, null)
             Spacer(modifier = Modifier.width(8.dp))

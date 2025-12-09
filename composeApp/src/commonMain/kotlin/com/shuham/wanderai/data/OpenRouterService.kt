@@ -18,17 +18,14 @@ class OpenRouterService(private val client: HttpClient) {
     private val apiKey = BuildConfig.OPENROUTER_API_KEY
     private val url = "https://openrouter.ai/api/v1/chat/completions"
 
-    //private val model = "meta-llama/llama-3.3-70b-instruct:free"
-    //private val model = "tngtech/deepseek-r1t2-chimera:free"
     private val model = "amazon/nova-2-lite-v1:free"
-
 
     private val jsonParser = Json {
         ignoreUnknownKeys = true
         isLenient = true
     }
 
-    suspend fun generateItinerary(
+    suspend fun getTripData(
         destination: String,
         budget: String,
         days: Int,
@@ -59,6 +56,7 @@ class OpenRouterService(private val client: HttpClient) {
                       "activities": [
                         {
                           "type": "SIGHTSEEING", 
+                          "time": "09:00 AM",
                           "placeName": "Name of place",
                           "coordinates": { "lat": 0.0, "lng": 0.0 },
                           "description": "Short description",
@@ -66,6 +64,7 @@ class OpenRouterService(private val client: HttpClient) {
                         },
                         {
                           "type": "FOOD_OPTION",
+                          "time": "01:00 PM",
                           "title": "Lunch Recommendation",
                           "options": [
                             {
@@ -90,7 +89,6 @@ class OpenRouterService(private val client: HttpClient) {
             Do not include markdown formatting. Just raw JSON.
         """.trimIndent()
 
-        // OpenAI Standard Request Body
         val requestBody = OpenRouterRequest(
             model = model,
             messages = listOf(
@@ -99,39 +97,29 @@ class OpenRouterService(private val client: HttpClient) {
             response_format = ResponseFormat(type = "json_object") // Force JSON
         )
 
-        println("pass 1: Sending request to OpenRouter $url")
-
         return try {
             val response = client.post(url) {
                 contentType(ContentType.Application.Json)
                 header("Authorization", "Bearer $apiKey")
-                // OpenRouter requires these headers
                 header("HTTP-Referer", "https://wanderai.app")
                 header("X-Title", "WanderAI")
                 setBody(requestBody)
             }
 
             val rawString = response.bodyAsText()
-            println("pass 2: Raw Response: $rawString")
-
             if (!response.status.isSuccess()) {
-                println("API Error: ${response.status}")
                 return null
             }
 
             val apiResponse = jsonParser.decodeFromString<OpenRouterResponse>(rawString)
             var content = apiResponse.choices.firstOrNull()?.message?.content ?: "{}"
 
-            // Cleanup Logic
             val jsonStartIndex = content.indexOfFirst { it == '{' || it == '[' }
             val jsonEndIndex = content.indexOfLast { it == '}' || it == ']' }
             if (jsonStartIndex != -1 && jsonEndIndex != -1) {
                 content = content.substring(jsonStartIndex, jsonEndIndex + 1)
             }
 
-            println("pass 3: Parsed Content: $content")
-
-            // Parse final Itinerary
             if (content.startsWith("[")) {
                 jsonParser.decodeFromString<List<TripResponse>>(content).firstOrNull()
             } else {
@@ -139,14 +127,11 @@ class OpenRouterService(private val client: HttpClient) {
             }
 
         } catch (e: Exception) {
-            println("fail e : $e")
             e.printStackTrace()
             null
         }
     }
 }
-
-// --- OpenAI Standard Data Models ---
 
 @Serializable
 data class OpenRouterRequest(

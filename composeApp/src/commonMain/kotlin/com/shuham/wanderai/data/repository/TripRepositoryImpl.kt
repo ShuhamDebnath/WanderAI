@@ -7,7 +7,6 @@ import com.shuham.wanderai.data.model.TripRequest
 import com.shuham.wanderai.data.model.TripResponse
 import com.shuham.wanderai.domain.repository.TripRepository
 import com.shuham.wanderai.util.NetworkResult
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 class TripRepositoryImpl(
@@ -15,59 +14,69 @@ class TripRepositoryImpl(
     private val tripDao: TripDao
 ) : TripRepository {
 
-    private val json = Json { ignoreUnknownKeys = true }
+    private val json = Json { 
+        ignoreUnknownKeys = true
+        prettyPrint = true
+    }
 
     override suspend fun generateTrip(request: TripRequest): NetworkResult<TripResponse> {
-        val networkResult = try {
-            openRouterService.generateItinerary(
+        return try {
+            openRouterService.getTripData(
                 destination = request.destination,
                 budget = request.budget,
                 days = request.duration,
                 travelers = request.travelers,
                 interests = request.interests,
                 diet = request.diet
-            )?.let {
-                NetworkResult.Success(it)
+            )?.let { tripResponse ->
+                // Save to DB immediately on success and get the ID
+
+                val savedTripId = saveTrip(tripResponse)
+                // Return the response now including the ID
+                NetworkResult.Success(tripResponse.copy(id = savedTripId))
             } ?: NetworkResult.Error("Failed to generate itinerary. The response from the AI was empty.")
         } catch (e: Exception) {
             e.printStackTrace()
             NetworkResult.Error(e.message ?: "An unknown error occurred while calling the AI service.")
         }
-
-        if (networkResult is NetworkResult.Success) {
-            networkResult.data?.let { saveTrip(it) }
-        }
-
-        return networkResult
     }
 
     override suspend fun saveTrip(trip: TripResponse): String {
-        val tripJson = json.encodeToString(trip)
+        // Generate a new ID here. This is the single source of truth for the ID.
         val uniqueId = (trip.tripName.take(10) + "_" + System.currentTimeMillis()).filter { it.isLetterOrDigit() }
+
+        // Create a new TripResponse instance that includes the generated ID.
+        val tripWithId = trip.copy(id = uniqueId)
+
+        val tripJson = json.encodeToString(tripWithId)
         
         val entity = TripEntity(
-            id = uniqueId,
-            tripName = trip.tripName,
-            destinations = trip.destinations.joinToString(", "),
+            id = uniqueId, // Use the newly generated ID
+            tripName = tripWithId.tripName,
+            destinations = tripWithId.destinations.joinToString(", "),
             createdAt = System.currentTimeMillis(),
             tripDataJson = tripJson
         )
+
+        println("entity $entity")
         
         tripDao.insertTrip(entity)
         return uniqueId
     }
 
     override suspend fun getTrip(tripId: String): TripResponse? {
-        val entity = tripDao.getTripById(tripId)
-        return if (entity != null) {
+        return tripDao.getTripById(tripId)?.let { tripEntity ->
+
+
             try {
-                json.decodeFromString<TripResponse>(entity.tripDataJson)
+                val tripResponse  = json.decodeFromString<TripResponse>(tripEntity.tripDataJson)
+                tripResponse.id = tripEntity.id
+                println("tripResponse $tripResponse")
+                tripResponse
             } catch (e: Exception) {
                 e.printStackTrace()
                 null
             }
-        } else {
-            null
         }
     }
 
@@ -75,11 +84,16 @@ class TripRepositoryImpl(
         return tripDao.getAllTrips().mapNotNull { entity ->
             try {
                 val tripResponse = json.decodeFromString<TripResponse>(entity.tripDataJson)
-                entity.id to tripResponse
+                // The ID from the entity is the source of truth
+                entity.id to tripResponse.copy(id = entity.id)
             } catch (e: Exception) {
                 e.printStackTrace()
                 null
             }
         }
+    }
+
+    override suspend fun deleteTrip(tripId: String) {
+        tripDao.deleteTrip(tripId)
     }
 }

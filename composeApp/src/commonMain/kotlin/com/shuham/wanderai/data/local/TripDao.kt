@@ -17,6 +17,9 @@ interface TripDao {
     @Query("SELECT * FROM trips ORDER BY createdAt DESC")
     suspend fun getAllTrips(): List<TripEntity>
     
+    @Query("SELECT * FROM trips WHERE tripDataJson = :json LIMIT 1")
+    suspend fun getTripByJson(json: String): TripEntity?
+    
     @Query("DELETE FROM trips WHERE id = :tripId")
     suspend fun deleteTrip(tripId: String)
 }

@@ -1,6 +1,7 @@
 package com.shuham.wanderai.data.model
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 
 @Serializable
 data class TripRequest(
@@ -15,6 +16,7 @@ data class TripRequest(
 
 @Serializable
 data class TripResponse(
+    @Transient var id: String = "", // This will be ignored by serialization and populated by the repository.
     val tripName: String,
     val destinations: List<String>,
     val days: List<DayPlan>
@@ -37,18 +39,14 @@ data class DaySection(
 @Serializable
 data class Activity(
     val type: String, // SIGHTSEEING, FOOD_OPTION, etc.
-    // Fields for Sightseeing/Transport
+    val time: String, 
     val placeName: String? = null,
     val coordinates: Coordinates? = null,
     val description: String? = null,
     val estimatedDuration: String? = null,
-    // Fields for Options (Food/Hotel)
     val title: String? = null,
     val options: List<ActivityOption>? = null
 )
-
-
-
 
 @Serializable
 data class Coordinates(
@@ -59,8 +57,8 @@ data class Coordinates(
 @Serializable
 data class ActivityOption(
     val name: String,
-    val tag: String, // Best Match, Cheapest, etc.
-    val priceLevel: String, // $, $$, $$$
+    val tag: String, 
+    val priceLevel: String, 
     val description: String,
     val isRecommended: Boolean
 )

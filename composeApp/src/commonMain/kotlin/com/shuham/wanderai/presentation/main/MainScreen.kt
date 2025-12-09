@@ -1,12 +1,9 @@
 package com.shuham.wanderai.presentation.main
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -15,7 +12,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -24,11 +20,12 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.shuham.wanderai.navigation.Home
+import com.shuham.wanderai.navigation.Map
 import com.shuham.wanderai.navigation.Profile
-import com.shuham.wanderai.navigation.Test
 import com.shuham.wanderai.navigation.TripDetails
 import com.shuham.wanderai.navigation.Trips
 import com.shuham.wanderai.presentation.home.HomeRoute
+import com.shuham.wanderai.presentation.map.MapRoute
 import com.shuham.wanderai.presentation.profile.ProfileScreen
 import com.shuham.wanderai.presentation.trip_details.TripDetailsRoute
 import com.shuham.wanderai.presentation.trips.TripsScreen
@@ -40,8 +37,7 @@ fun MainScreen() {
     val items = listOf(
         NavigationItem("Home", Home, Icons.Default.Home),
         NavigationItem("Trips", Trips, Icons.Default.DateRange),
-        NavigationItem("Profile", Profile, Icons.Default.Person),
-        //NavigationItem("Test", Test, Icons.Default.MoreVert)
+        NavigationItem("Profile", Profile, Icons.Default.Person)
     )
 
     Scaffold(
@@ -106,10 +102,16 @@ fun MainScreen() {
             
             composable<TripDetails> {
                 TripDetailsRoute(
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToMap = { tripId, dayNumber ->
+                        println("tripId $tripId, dayNumber $dayNumber")
+                        navController.navigate(Map(tripId, dayNumber)) // tripId and dayNumber are not used by MapViewModel anymore, but required by the route class
+                    }
                 )
             }
-            composable<Test> {
+            
+            composable<Map> {
+                MapRoute()
             }
         }
     }
