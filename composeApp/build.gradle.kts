@@ -1,7 +1,7 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import java.util.Properties // Import 1
-import java.io.FileInputStream // Import 2
+import java.util.Properties
+import java.io.FileInputStream
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -15,15 +15,11 @@ plugins {
     alias(libs.plugins.googleServices) // Firebase for Android
 }
 
-
-// --- ADD THIS BLOCK: Load local.properties ---
 val localProperties = Properties()
 val localPropertiesFile = rootProject.file("local.properties")
 if (localPropertiesFile.exists()) {
     localProperties.load(FileInputStream(localPropertiesFile))
 }
-
-
 
 kotlin {
     androidTarget {
@@ -82,12 +78,7 @@ kotlin {
             implementation(libs.coil.compose)
             implementation(libs.coil.network.ktor)
             implementation(libs.firebase.auth)
-
-
-            // Note: compose.materialIconsExtended is large, use sparingly if needed
             implementation(compose.materialIconsExtended)
-
-            //implementation(libs.kermit)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -95,23 +86,17 @@ kotlin {
     }
 }
 
-
-// --- ADD THIS BLOCK: Configure BuildConfig for KMP ---
 buildConfig {
     packageName("com.shuham.wanderai")
-    val geminiKey = localProperties.getProperty("GEMINI_API_KEY") ?: ""
     val openRouterKey = localProperties.getProperty("OPENROUTER_API_KEY") ?: ""
-
-    buildConfigField("String", "GEMINI_API_KEY", "\"$geminiKey\"")
     buildConfigField("String", "OPENROUTER_API_KEY", "\"$openRouterKey\"")
+
 }
 
-// Room Database Configuration
 room {
     schemaDirectory("$projectDir/schemas")
 }
 
-// KSP Configuration for Room (Generates DB code for all platforms)
 dependencies {
     add("kspCommonMainMetadata", libs.room.compiler)
     add("kspAndroid", libs.room.compiler)
@@ -124,18 +109,15 @@ android {
     namespace = "com.shuham.wanderai"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
-    buildFeatures {
-        buildConfig = false
-    }
-
     defaultConfig {
         applicationId = "com.shuham.wanderai"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
-
-        //buildConfigField("String", "GEMINI_API_KEY", "\"${findProperty("GEMINI_API_KEY") ?: ""}\"")
+        
+        // Make Maps API key available to the manifest
+        manifestPlaceholders["MAPS_API_KEY"] = localProperties.getProperty("MAPs_API_KEY") ?: ""
     }
 
     packaging {
@@ -153,8 +135,4 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-}
-
-dependencies {
-    debugImplementation(compose.uiTooling)
 }

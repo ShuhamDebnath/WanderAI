@@ -31,7 +31,9 @@ import com.shuham.wanderai.presentation.trip_details.TripDetailsRoute
 import com.shuham.wanderai.presentation.trips.TripsScreen
 
 @Composable
-fun MainScreen() {
+fun MainScreen(
+    onLogout: () -> Unit
+) {
     val navController = rememberNavController()
 
     val items = listOf(
@@ -98,14 +100,15 @@ fun MainScreen() {
                 )
             }
             
-            composable<Profile> { ProfileScreen() }
+            composable<Profile> { 
+                ProfileScreen(onNavigateToLogin = onLogout)
+            }
             
             composable<TripDetails> {
                 TripDetailsRoute(
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToMap = { tripId, dayNumber ->
-                        println("tripId $tripId, dayNumber $dayNumber")
-                        navController.navigate(Map(tripId, dayNumber)) // tripId and dayNumber are not used by MapViewModel anymore, but required by the route class
+                        navController.navigate(Map(tripId = tripId, dayNumber = dayNumber))
                     }
                 )
             }

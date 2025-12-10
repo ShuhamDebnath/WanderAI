@@ -31,14 +31,10 @@ fun App() {
             composable<Splash> {
                 SplashScreen(
                     onNavigateToLogin = {
-                        navController.navigate(Login) {
-                            popUpTo(Splash) { inclusive = true }
-                        }
+                        navController.navigate(Login) { popUpTo(Splash) { inclusive = true } }
                     },
                     onNavigateToMain = {
-                        navController.navigate(Main) {
-                            popUpTo(Splash) { inclusive = true }
-                        }
+                        navController.navigate(Main) { popUpTo(Splash) { inclusive = true } }
                     }
                 )
             }
@@ -46,31 +42,28 @@ fun App() {
             composable<Login> {
                 LoginRoute(
                     onLoginSuccess = {
-                        navController.navigate(Main) {
-                            popUpTo(Login) { inclusive = true }
-                        }
+                        navController.navigate(Main) { popUpTo(Login) { inclusive = true } }
                     },
-                    onNavigateToSignUp = {
-                        navController.navigate(SignUp)
-                    }
+                    onNavigateToSignUp = { navController.navigate(SignUp) }
                 )
             }
 
             composable<SignUp> {
                 SignUpRoute(
                     onSignUpSuccess = {
-                        navController.navigate(Main) {
-                            popUpTo(SignUp) { inclusive = true }
-                        }
+                        navController.navigate(Main) { popUpTo(SignUp) { inclusive = true } }
                     },
-                    onNavigateToLogin = {
-                        navController.popBackStack()
-                    }
+                    onNavigateToLogin = { navController.popBackStack() }
                 )
             }
 
             composable<Main> {
-                MainScreen()
+                MainScreen(onLogout = {
+                    // On logout, restart the entire app flow from Splash
+                    navController.navigate(Splash) {
+                        popUpTo(0) { inclusive = true } // Clears the entire back stack
+                    }
+                })
             }
         }
     }
