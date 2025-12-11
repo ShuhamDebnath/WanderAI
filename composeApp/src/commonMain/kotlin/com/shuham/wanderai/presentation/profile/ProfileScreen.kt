@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ArrowForwardIos
@@ -114,7 +115,7 @@ fun ProfileScreen(
                 ProfileMenuItem("Notifications", Icons.Default.Notifications) { /* TODO */ }
                 ProfileMenuItem("Appearance", Icons.Default.DarkMode, hasSwitch = true) { /* TODO */ }
                 ProfileMenuItem("Privacy & Security", Icons.Default.Security) { /* TODO */ }
-                ProfileMenuItem("Help & Support", Icons.Default.Help) { /* TODO */ }
+                ProfileMenuItem("Help & Support", Icons.AutoMirrored.Filled.Help) { /* TODO */ }
             }
         }
 

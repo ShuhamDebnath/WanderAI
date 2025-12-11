@@ -14,13 +14,13 @@ import com.shuham.wanderai.presentation.profile.ProfileViewModel
 import com.shuham.wanderai.presentation.splash.SplashViewModel
 import com.shuham.wanderai.presentation.trip_details.TripDetailsViewModel
 import com.shuham.wanderai.presentation.trips.TripsViewModel
+import com.shuham.wanderai.util.LocationService
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import org.koin.core.module.dsl.singleOf
-//import org.koin.compose.viewmodel.dsl.viewModelOf
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.core.scope.Scope
 import org.koin.dsl.bind
@@ -47,8 +47,11 @@ val appModule = module {
     singleOf(::OpenRouterService)
 
     // Database
-    single { getDatabase(this) } 
+    single { getDatabase(this) }
     single { get<AppDatabase>().tripDao() }
+
+    // Platform Services
+    single { getLocationService(this) } bind LocationService::class
 
     // Repositories
     singleOf(::TripRepositoryImpl) bind TripRepository::class
@@ -66,3 +69,4 @@ val appModule = module {
 }
 
 expect fun getDatabase(scope: Scope): AppDatabase
+expect fun getLocationService(scope: Scope): LocationService

@@ -6,11 +6,12 @@ import kotlinx.serialization.Transient
 @Serializable
 data class TripRequest(
     val destination: String,
-    val budget: String,
     val travelers: String,
     val duration: Int,
-    val interests: List<String>,
-    val diet: List<String>
+    val budget: String,
+    //val pace : Float,
+    val diet: List<String>,
+    val interests: List<String>
 )
 
 
@@ -36,14 +37,17 @@ data class DaySection(
     val activities: List<Activity>
 )
 
+
 @Serializable
 data class Activity(
-    val type: String, // SIGHTSEEING, FOOD_OPTION, etc.
-    val time: String, 
+    val type: String,
+    val time: String? = null,
     val placeName: String? = null,
     val coordinates: Coordinates? = null,
     val description: String? = null,
     val estimatedDuration: String? = null,
+    val priceLevel: String? = null,
+    val insiderTip: String? = null,
     val title: String? = null,
     val options: List<ActivityOption>? = null
 )
@@ -57,8 +61,8 @@ data class Coordinates(
 @Serializable
 data class ActivityOption(
     val name: String,
-    val tag: String, 
-    val priceLevel: String, 
+    val tag: String,
+    val priceLevel: String,
     val description: String,
     val isRecommended: Boolean
 )

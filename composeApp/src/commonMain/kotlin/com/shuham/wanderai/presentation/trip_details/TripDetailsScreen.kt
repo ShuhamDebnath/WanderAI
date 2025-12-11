@@ -405,7 +405,7 @@ fun SimpleActivityCard(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = activity.time,
+                    text = activity.time ?: "",
                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -425,7 +425,7 @@ fun SimpleActivityCard(
             if (activity.description != null) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = activity.description,
+                    text = activity.description ?: "No description available.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
@@ -525,7 +525,7 @@ fun ActivityDetailsContent(activity: Activity, onNavigate: () -> Unit) {
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = activity.time,
+            text = activity.time ?: "",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

@@ -6,12 +6,15 @@ import com.shuham.wanderai.data.local.TripEntity
 import com.shuham.wanderai.data.model.TripRequest
 import com.shuham.wanderai.data.model.TripResponse
 import com.shuham.wanderai.domain.repository.TripRepository
+import com.shuham.wanderai.util.LocationService
 import com.shuham.wanderai.util.NetworkResult
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 class TripRepositoryImpl(
     private val openRouterService: OpenRouterService,
-    private val tripDao: TripDao
+    private val tripDao: TripDao,
+    private val locationService: LocationService
 ) : TripRepository {
 
     private val json = Json { 
@@ -20,7 +23,7 @@ class TripRepositoryImpl(
     }
 
     override suspend fun generateTrip(request: TripRequest): NetworkResult<TripResponse> {
-        return try {
+        val networkResult = try {
             openRouterService.getTripData(
                 destination = request.destination,
                 budget = request.budget,
@@ -28,51 +31,59 @@ class TripRepositoryImpl(
                 travelers = request.travelers,
                 interests = request.interests,
                 diet = request.diet
-            )?.let { tripResponse ->
-                // Save to DB immediately on success and get the ID
-
-                val savedTripId = saveTrip(tripResponse)
-                // Return the response now including the ID
-                NetworkResult.Success(tripResponse.copy(id = savedTripId))
+            )?.let {
+                // Enrich with coordinates before saving
+                val enrichedTrip = enrichTripWithCoordinates(it)
+                val savedTripId = saveTrip(enrichedTrip)
+                NetworkResult.Success(enrichedTrip.copy(id = savedTripId))
             } ?: NetworkResult.Error("Failed to generate itinerary. The response from the AI was empty.")
         } catch (e: Exception) {
             e.printStackTrace()
             NetworkResult.Error(e.message ?: "An unknown error occurred while calling the AI service.")
         }
+        
+        return networkResult
+    }
+    
+    private suspend fun enrichTripWithCoordinates(trip: TripResponse): TripResponse {
+        val updatedDays = trip.days.map { day ->
+            val updatedSections = day.sections.map { section ->
+                val updatedActivities = section.activities.map { activity ->
+                    if (activity.coordinates == null && activity.placeName != null) {
+                        val coords = locationService.getCoordinates(activity.placeName)
+                        activity.copy(coordinates = coords)
+                    } else {
+                        activity
+                    }
+                }
+                section.copy(activities = updatedActivities)
+            }
+            day.copy(sections = updatedSections)
+        }
+        return trip.copy(days = updatedDays)
     }
 
     override suspend fun saveTrip(trip: TripResponse): String {
-        // Generate a new ID here. This is the single source of truth for the ID.
         val uniqueId = (trip.tripName.take(10) + "_" + System.currentTimeMillis()).filter { it.isLetterOrDigit() }
-
-        // Create a new TripResponse instance that includes the generated ID.
         val tripWithId = trip.copy(id = uniqueId)
-
         val tripJson = json.encodeToString(tripWithId)
         
         val entity = TripEntity(
-            id = uniqueId, // Use the newly generated ID
+            id = uniqueId,
             tripName = tripWithId.tripName,
             destinations = tripWithId.destinations.joinToString(", "),
             createdAt = System.currentTimeMillis(),
             tripDataJson = tripJson
         )
-
-        println("entity $entity")
         
         tripDao.insertTrip(entity)
         return uniqueId
     }
 
     override suspend fun getTrip(tripId: String): TripResponse? {
-        return tripDao.getTripById(tripId)?.let { tripEntity ->
-
-
+        return tripDao.getTripById(tripId)?.let {
             try {
-                val tripResponse  = json.decodeFromString<TripResponse>(tripEntity.tripDataJson)
-                tripResponse.id = tripEntity.id
-                println("tripResponse $tripResponse")
-                tripResponse
+                json.decodeFromString<TripResponse>(it.tripDataJson)
             } catch (e: Exception) {
                 e.printStackTrace()
                 null
@@ -84,7 +95,6 @@ class TripRepositoryImpl(
         return tripDao.getAllTrips().mapNotNull { entity ->
             try {
                 val tripResponse = json.decodeFromString<TripResponse>(entity.tripDataJson)
-                // The ID from the entity is the source of truth
                 entity.id to tripResponse.copy(id = entity.id)
             } catch (e: Exception) {
                 e.printStackTrace()
