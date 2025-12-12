@@ -18,20 +18,28 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -61,6 +69,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
@@ -71,6 +80,9 @@ import coil3.compose.AsyncImage
 import com.shuham.wanderai.data.model.Activity
 import com.shuham.wanderai.data.model.ActivityOption
 import com.shuham.wanderai.data.model.TripResponse
+import com.shuham.wanderai.theme.OceanTeal
+import com.shuham.wanderai.theme.SageGreen
+import com.shuham.wanderai.theme.SunsetCoral
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -224,20 +236,23 @@ fun TripDetailsScreen(
             }
         }
 
+
         if (state.selectedActivity != null || state.selectedOption != null) {
             ModalBottomSheet(
                 onDismissRequest = { onAction(TripDetailsAction.OnDismissBottomSheet) },
                 sheetState = bottomSheetState,
-                containerColor = MaterialTheme.colorScheme.surface
+                containerColor = Color.White
             ) {
                 if (state.selectedActivity != null) {
                     ActivityDetailsContent(
                         activity = state.selectedActivity,
+                        imageUrl = state.selectedImage, // Pass the image from state
                         onNavigate = { onAction(TripDetailsAction.OnNavigateToMap) }
                     )
                 } else if (state.selectedOption != null) {
                     OptionDetailsContent(
                         option = state.selectedOption,
+                        imageUrl = state.selectedImage, // Pass the image from state
                         onNavigate = { onAction(TripDetailsAction.OnNavigateToMap) }
                     )
                 }
@@ -516,79 +531,289 @@ fun SmallChoiceCard(option: ActivityOption, onClick: () -> Unit) {
 }
 
 @Composable
-fun ActivityDetailsContent(activity: Activity, onNavigate: () -> Unit) {
-    Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
-        Text(
-            text = activity.placeName ?: activity.title ?: "Details",
-            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.primary
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = activity.time ?: "",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = activity.description ?: "No description available.",
-            style = MaterialTheme.typography.bodyLarge
-        )
-        Spacer(modifier = Modifier.height(24.dp))
-        Button(
-            onClick = onNavigate,
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+fun ActivityDetailsContent(
+    activity: Activity,
+    imageUrl: String?,
+    onNavigate: () -> Unit
+) {
+    val searchQuery = activity.placeName ?: activity.title ?: ""
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+    ) {
+        // Hero Image Area
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(250.dp)
         ) {
-            Icon(Icons.Default.Navigation, null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Navigate")
+            if (imageUrl != null) {
+                AsyncImage(
+                    model = imageUrl,
+                    contentDescription = searchQuery,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                // Placeholder
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(OceanTeal.copy(alpha = 0.1f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (searchQuery.isNotEmpty()) {
+                        CircularProgressIndicator(color = OceanTeal)
+                    } else {
+                        Icon(Icons.Default.Place, null, tint = OceanTeal.copy(0.5f), modifier = Modifier.size(48.dp))
+                    }
+                }
+            }
+
+            // Gradient Scrim
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f)),
+                            startY = 100f,
+                            endY = Float.POSITIVE_INFINITY
+                        )
+                    )
+            )
+
+            // Title overlaid on image
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(24.dp)
+            ) {
+                // Category Chip
+                Text(
+                    text = activity.type.replace("_", " "),
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                    color = Color.Black,
+                    modifier = Modifier
+                        .background(Color.White, RoundedCornerShape(4.dp))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = activity.placeName ?: activity.title ?: "Details",
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                )
+            }
+        }
+
+        Column(modifier = Modifier.padding(24.dp)) {
+            // Info Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                InfoChip(icon = Icons.Default.AccessTime, text = activity.time ?: "--:--")
+                if (activity.estimatedDuration != null) {
+                    InfoChip(icon = Icons.Default.Timer, text = activity.estimatedDuration)
+                }
+                if (activity.priceLevel != null) {
+                    InfoChip(icon = Icons.Default.AttachMoney, text = activity.priceLevel)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // INSIDER TIP
+            if (!activity.insiderTip.isNullOrBlank()) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = SageGreen.copy(alpha = 0.15f)),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.Top) {
+                        Icon(
+                            Icons.Default.Lightbulb,
+                            contentDescription = "Tip",
+                            tint = OceanTeal,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = "Insider Tip",
+                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                                color = OceanTeal
+                            )
+                            Text(
+                                text = activity.insiderTip,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.Black.copy(alpha = 0.8f)
+                            )
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+
+            // Description
+            Text(
+                text = "About",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = Color.Black
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = activity.description ?: "No description available.",
+                style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 24.sp),
+                color = Color.Gray
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Navigate Button
+            Button(
+                onClick = onNavigate,
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = OceanTeal),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Icon(Icons.Default.Navigation, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Navigate on Map", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+            }
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
 
 @Composable
-fun OptionDetailsContent(option: ActivityOption, onNavigate: () -> Unit) {
-    Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
-        AsyncImage(
-            model = "https://loremflickr.com/800/400/${option.name.replace(" ", ",")},food",
-            contentDescription = option.name,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxWidth().height(200.dp).clip(RoundedCornerShape(12.dp))
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = option.name,
-                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.weight(1f)
-            )
-            Text(
-                text = option.priceLevel,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        Text(
-            text = option.tag,
-            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.tertiary
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = option.description,
-            style = MaterialTheme.typography.bodyLarge
-        )
-        Spacer(modifier = Modifier.height(24.dp))
-        Button(
-            onClick = onNavigate,
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+fun OptionDetailsContent(
+    option: ActivityOption,
+    imageUrl: String?,
+    onNavigate: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+    ) {
+        Box(
+            modifier = Modifier.fillMaxWidth().height(250.dp)
         ) {
-            Icon(Icons.Default.Navigation, null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Navigate")
+            if (imageUrl != null) {
+                AsyncImage(
+                    model = imageUrl,
+                    contentDescription = option.name,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                Box(
+                    modifier = Modifier.fillMaxSize().background(OceanTeal.copy(alpha = 0.1f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = OceanTeal)
+                }
+            }
+
+            // Gradient
+            Box(
+                modifier = Modifier.fillMaxSize().background(
+                    Brush.verticalGradient(
+                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f)),
+                        startY = 100f,
+                        endY = Float.POSITIVE_INFINITY
+                    )
+                )
+            )
+
+            Column(
+                modifier = Modifier.align(Alignment.BottomStart).padding(24.dp)
+            ) {
+                if (option.isRecommended) {
+                    Text(
+                        text = "Recommended",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        color = Color.White,
+                        modifier = Modifier
+                            .background(SunsetCoral, RoundedCornerShape(4.dp))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                Text(
+                    text = option.name,
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                )
+            }
         }
+
+        Column(modifier = Modifier.padding(24.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                InfoChip(icon = Icons.Default.AttachMoney, text = option.priceLevel)
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = option.tag,
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                color = SageGreen
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "About",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = Color.Black
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = option.description,
+                style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 24.sp),
+                color = Color.Gray
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Button(
+                onClick = onNavigate,
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = OceanTeal),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Icon(Icons.Default.Navigation, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Navigate on Map", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+            }
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
+
+// Helper for Info Chips (Time, Price, etc)
+@Composable
+fun InfoChip(icon: ImageVector, text: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .background(Color(0xFFF5F5F5), RoundedCornerShape(8.dp))
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+    ) {
+        Icon(icon, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(16.dp))
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(text, style = MaterialTheme.typography.labelMedium, color = Color.Black)
     }
 }

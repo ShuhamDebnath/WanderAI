@@ -1,6 +1,7 @@
 package com.shuham.wanderai.data.repository
 
 import com.shuham.wanderai.data.OpenRouterService
+import com.shuham.wanderai.data.PlacesService
 import com.shuham.wanderai.data.local.TripDao
 import com.shuham.wanderai.data.local.TripEntity
 import com.shuham.wanderai.data.model.TripRequest
@@ -14,7 +15,8 @@ import kotlinx.serialization.json.Json
 class TripRepositoryImpl(
     private val openRouterService: OpenRouterService,
     private val tripDao: TripDao,
-    private val locationService: LocationService
+    private val locationService: LocationService,
+    private val placesService: PlacesService
 ) : TripRepository {
 
     private val json = Json { 
@@ -28,6 +30,7 @@ class TripRepositoryImpl(
                 destination = request.destination,
                 budget = request.budget,
                 days = request.duration,
+                pace = request.pace,
                 travelers = request.travelers,
                 interests = request.interests,
                 diet = request.diet
@@ -106,4 +109,10 @@ class TripRepositoryImpl(
     override suspend fun deleteTrip(tripId: String) {
         tripDao.deleteTrip(tripId)
     }
+
+    override suspend fun getPlaceImageUrl(placeName: String): String? {
+        return placesService.getPlaceImageUrl(placeName)
+    }
+
+
 }

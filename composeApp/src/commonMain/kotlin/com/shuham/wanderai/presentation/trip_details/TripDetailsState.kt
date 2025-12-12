@@ -10,7 +10,8 @@ data class TripDetailsState(
     val isLoading: Boolean = true,
     val errorMessage: String? = null,
     val selectedActivity: Activity? = null,
-    val selectedOption: ActivityOption? = null
+    val selectedOption: ActivityOption? = null,
+    val selectedImage: String? = null // To hold the image URL for the bottom sheet
 )
 
 sealed interface TripDetailsAction {

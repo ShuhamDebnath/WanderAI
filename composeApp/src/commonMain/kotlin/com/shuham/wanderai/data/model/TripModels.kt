@@ -9,7 +9,7 @@ data class TripRequest(
     val travelers: String,
     val duration: Int,
     val budget: String,
-    //val pace : Float,
+    val pace : Float,
     val diet: List<String>,
     val interests: List<String>
 )
@@ -17,7 +17,7 @@ data class TripRequest(
 
 @Serializable
 data class TripResponse(
-    @Transient var id: String = "", // This will be ignored by serialization and populated by the repository.
+    @Transient var id: String = "",
     val tripName: String,
     val destinations: List<String>,
     val days: List<DayPlan>
@@ -49,7 +49,8 @@ data class Activity(
     val priceLevel: String? = null,
     val insiderTip: String? = null,
     val title: String? = null,
-    val options: List<ActivityOption>? = null
+    val options: List<ActivityOption>? = null,
+    @Transient var imageUrl: String? = null // For session-specific image caching
 )
 
 @Serializable
@@ -64,5 +65,6 @@ data class ActivityOption(
     val tag: String,
     val priceLevel: String,
     val description: String,
-    val isRecommended: Boolean
+    val isRecommended: Boolean,
+    @Transient var imageUrl: String? = null // Also add here for consistency in bottom sheet
 )

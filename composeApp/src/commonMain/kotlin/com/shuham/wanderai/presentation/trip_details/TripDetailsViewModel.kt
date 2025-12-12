@@ -4,6 +4,9 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
+import com.shuham.wanderai.data.PlacesService
+import com.shuham.wanderai.data.model.Activity
+import com.shuham.wanderai.data.model.ActivityOption
 import com.shuham.wanderai.domain.repository.TripRepository
 import com.shuham.wanderai.navigation.TripDetails
 import kotlinx.coroutines.channels.Channel
@@ -16,7 +19,7 @@ import kotlinx.coroutines.launch
 
 class TripDetailsViewModel(
     private val savedStateHandle: SavedStateHandle,
-    private val repository: TripRepository
+    private val repository: TripRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(TripDetailsState())
@@ -33,15 +36,13 @@ class TripDetailsViewModel(
         val tripDetailsArgs = savedStateHandle.toRoute<TripDetails>()
         val tripId = tripDetailsArgs.tripId
 
-        println(" loadTrip() -> tripId $tripId")
-
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
             val trip = repository.getTrip(tripId)
             if (trip != null) {
                 _state.update { it.copy(trip = trip, isLoading = false) }
             } else {
-                _state.update { it.copy(isLoading = false, errorMessage = "Trip not found in local database.") }
+                _state.update { it.copy(isLoading = false, errorMessage = "Trip not found.") }
             }
         }
     }
@@ -53,24 +54,62 @@ class TripDetailsViewModel(
             }
             is TripDetailsAction.OnActivityClicked -> {
                 _state.update { it.copy(selectedActivity = action.activity, selectedOption = null) }
+                fetchImageForActivity(action.activity)
             }
             is TripDetailsAction.OnOptionClicked -> {
                 _state.update { it.copy(selectedOption = action.option, selectedActivity = null) }
+                fetchImageForOption(action.option)
             }
             TripDetailsAction.OnDismissBottomSheet -> {
                 _state.update { it.copy(selectedActivity = null, selectedOption = null) }
             }
             TripDetailsAction.OnNavigateToMap -> {
-                viewModelScope.launch {
+                 viewModelScope.launch {
                     _state.value.trip?.let {
-                        println("TripDetailsAction.OnNavigateToMap -> tripId ${it.id}")
                         val dayNumber = it.days[_state.value.selectedDay].dayNumber
                         _events.send(TripDetailsEvent.NavigateToMap(it.id, dayNumber))
                     }
                 }
             }
-            TripDetailsAction.OnAddActivityClicked -> {
-                // Placeholder
+            TripDetailsAction.OnAddActivityClicked -> { /* Placeholder */ }
+        }
+    }
+
+    private fun fetchImageForActivity(activity: Activity) {
+        if (activity.placeName == null) return
+        viewModelScope.launch {
+            val imageUrl = repository.getPlaceImageUrl(activity.placeName)
+            _state.update { currentState ->
+                val updatedTrip = currentState.trip?.let { trip ->
+                    trip.copy(days = trip.days.map { day ->
+                        day.copy(sections = day.sections.map { section ->
+                            section.copy(activities = section.activities.map { act ->
+                                if (act == activity) act.copy(imageUrl = imageUrl) else act
+                            })
+                        })
+                    })
+                }
+                currentState.copy(trip = updatedTrip, selectedActivity = updatedTrip?.days?.flatMap { it.sections }?.flatMap { it.activities }?.find { it == activity })
+            }
+        }
+    }
+
+    private fun fetchImageForOption(option: ActivityOption) {
+        viewModelScope.launch {
+            val imageUrl = repository.getPlaceImageUrl(option.name)
+            _state.update { currentState ->
+                val updatedTrip = currentState.trip?.let { trip ->
+                    trip.copy(days = trip.days.map { day ->
+                        day.copy(sections = day.sections.map { section ->
+                            section.copy(activities = section.activities.map { act ->
+                                act.copy(options = act.options?.map { opt ->
+                                    if (opt == option) opt.copy(imageUrl = imageUrl) else opt
+                                })
+                            })
+                        })
+                    })
+                }
+                currentState.copy(trip = updatedTrip, selectedOption = updatedTrip?.days?.flatMap { it.sections }?.flatMap { it.activities }?.flatMap { it.options ?: emptyList() }?.find { it == option })
             }
         }
     }

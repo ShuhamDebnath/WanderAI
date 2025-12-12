@@ -2,11 +2,13 @@ package com.shuham.wanderai.presentation.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.shuham.wanderai.data.PlacesService
 import com.shuham.wanderai.data.model.TripRequest
-import com.shuham.wanderai.data.model.TripResponse
 import com.shuham.wanderai.domain.repository.TripRepository
 import com.shuham.wanderai.util.NetworkResult
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,7 +22,8 @@ sealed interface HomeEvent {
 }
 
 class HomeViewModel(
-    private val repository: TripRepository
+    private val repository: TripRepository,
+    private val placesService: PlacesService
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeState())
@@ -29,18 +32,23 @@ class HomeViewModel(
     private val _events = Channel<HomeEvent>()
     val events = _events.receiveAsFlow()
 
+    private var searchJob: Job? = null
+
     fun onAction(action: HomeAction) {
         when (action) {
             is HomeAction.OnDestinationChanged -> onDestinationChanged(action.index, action.newValue)
+            is HomeAction.OnDestinationFieldFocused -> onDestinationFieldFocused(action.index)
+            is HomeAction.OnCitySelected -> onCitySelected(action.index, action.city)
+            HomeAction.OnDismissSuggestions -> onDismissSuggestions()
             HomeAction.OnAddDestination -> onAddDestination()
             is HomeAction.OnRemoveDestination -> onRemoveDestination(action.index)
             is HomeAction.OnTravelerTypeSelected -> onTravelerTypeSelected(action.type)
             is HomeAction.OnDateTypeToggle -> onDateTypeToggle(action.isFlexible)
             is HomeAction.OnDurationChanged -> onDurationChanged(action.newDuration)
             is HomeAction.OnBudgetSelected -> onBudgetSelected(action.budget)
-            is HomeAction.OnDietSelected -> onDietSelected(action.diet)
             is HomeAction.OnPaceChanged -> onPaceChanged(action.newPace)
             is HomeAction.OnInterestSelected -> onInterestSelected(action.interest)
+            is HomeAction.OnDietSelected -> onDietSelected(action.diet)
             HomeAction.OnPlanTripClicked -> onPlanTripClicked()
             HomeAction.OnErrorDismissed -> onErrorDismissed()
         }
@@ -50,8 +58,29 @@ class HomeViewModel(
         val currentDestinations = _state.value.destinations.toMutableList()
         if (index in currentDestinations.indices) {
             currentDestinations[index] = newValue
-            _state.update { it.copy(destinations = currentDestinations) }
+            _state.update { it.copy(destinations = currentDestinations, activeSuggestionField = index) }
+
+            searchJob?.cancel()
+            searchJob = viewModelScope.launch {
+                delay(300L) // Debounce
+                val suggestions = placesService.searchCities(newValue)
+                _state.update { it.copy(citySuggestions = suggestions) }
+            }
         }
+    }
+
+    private fun onDestinationFieldFocused(index: Int) {
+        _state.update { it.copy(activeSuggestionField = index, citySuggestions = emptyList()) }
+    }
+
+    private fun onCitySelected(index: Int, city: com.shuham.wanderai.data.CitySuggestion) {
+        val currentDestinations = _state.value.destinations.toMutableList()
+        currentDestinations[index] = city.name
+        _state.update { it.copy(destinations = currentDestinations, citySuggestions = emptyList(), activeSuggestionField = null) }
+    }
+
+    private fun onDismissSuggestions() {
+        _state.update { it.copy(citySuggestions = emptyList(), activeSuggestionField = null) }
     }
 
     private fun onAddDestination() {
@@ -61,8 +90,8 @@ class HomeViewModel(
     }
 
     private fun onRemoveDestination(index: Int) {
-        val currentDestinations = _state.value.destinations.toMutableList()
-        if (currentDestinations.size > 1) { // Keep at least one
+        if (_state.value.destinations.size > 1) {
+            val currentDestinations = _state.value.destinations.toMutableList()
             currentDestinations.removeAt(index)
             _state.update { it.copy(destinations = currentDestinations) }
         }
@@ -121,6 +150,7 @@ class HomeViewModel(
             budget = currentState.selectedBudget.label,
             travelers = currentState.selectedTravelerType.label,
             duration = currentState.tripDurationDays,
+            pace = currentState.pace,
             interests = currentState.selectedInterests.map { it.label },
             diet = currentState.selectedDiet.map { it.label }
         )

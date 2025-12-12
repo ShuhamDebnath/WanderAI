@@ -1,8 +1,6 @@
 package com.shuham.wanderai.presentation.home
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -25,6 +23,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Notifications
@@ -35,7 +34,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
@@ -53,15 +54,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
-import com.shuham.wanderai.data.model.TripRequest
 import com.shuham.wanderai.presentation.loading.LoadingScreen
 import com.shuham.wanderai.theme.WanderAITheme
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 fun HomeRoute(
@@ -69,7 +70,7 @@ fun HomeRoute(
     onNavigateToTripDetails: (String) -> Unit
 ) {
     val state by viewModel.state.collectAsState()
-
+    
     LaunchedEffect(viewModel.events) {
         viewModel.events.collect { event ->
             when (event) {
@@ -77,33 +78,32 @@ fun HomeRoute(
             }
         }
     }
-
+    
     HomeScreen(
         state = state,
         onAction = viewModel::onAction
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     state: HomeState,
     onAction: (HomeAction) -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
-        val scrollState = rememberScrollState()
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
-                .verticalScroll(scrollState)
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
             HomeHeader(userName = state.userName)
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            DestinationInputSection(destinations = state.destinations, onAction = onAction)
+            DestinationInputSection(state = state, onAction = onAction)
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -128,30 +128,22 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(32.dp))
         }
 
-        // --- Overlays ---
-
-        AnimatedVisibility(
-            visible = state.isLoading,
-            enter = fadeIn(),
-            exit = fadeOut()
-        ) {
+        AnimatedVisibility(visible = state.isLoading) {
             LoadingScreen()
         }
 
         if (state.errorMessage != null) {
             AlertDialog(
                 onDismissRequest = { onAction(HomeAction.OnErrorDismissed) },
-                title = { Text(text = "Trip Generation Failed") },
-                text = { Text(text = state.errorMessage) },
-                confirmButton = {
-                    Button(onClick = { onAction(HomeAction.OnErrorDismissed) }) {
-                        Text("OK")
-                    }
-                }
+                title = { Text("Error") },
+                text = { Text(state.errorMessage) },
+                confirmButton = { Button(onClick = { onAction(HomeAction.OnErrorDismissed) }) { Text("OK") } }
             )
         }
     }
 }
+
+
 
 @Composable
 fun HomeHeader(userName: String) {
@@ -183,6 +175,71 @@ fun HomeHeader(userName: String) {
         }
     }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DestinationInputSection(
+    state: HomeState,
+    onAction: (HomeAction) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        state.destinations.forEachIndexed { index, destination ->
+            val isExpanded = state.activeSuggestionField == index && state.citySuggestions.isNotEmpty()
+
+            ExposedDropdownMenuBox(
+                expanded = isExpanded,
+                onExpandedChange = { 
+                    if (!it) onAction(HomeAction.OnDismissSuggestions) 
+                }
+            ) {
+                OutlinedTextField(
+                    value = destination,
+                    onValueChange = { onAction(HomeAction.OnDestinationChanged(index, it)) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor() // Important for dropdown positioning
+                        .onFocusChanged { if (it.isFocused) onAction(HomeAction.OnDestinationFieldFocused(index)) },
+                    label = { Text("Destination ${index + 1}") },
+                    leadingIcon = { Icon(Icons.Default.LocationOn, null) },
+                    trailingIcon = {
+                        if (state.destinations.size > 1) {
+                            IconButton(onClick = { onAction(HomeAction.OnRemoveDestination(index)) }) {
+                                Icon(Icons.Default.Close, contentDescription = "Remove Destination")
+                            }
+                        }
+                    },
+                    singleLine = true
+                )
+
+                ExposedDropdownMenu(
+                    expanded = isExpanded,
+                    onDismissRequest = { onAction(HomeAction.OnDismissSuggestions) }
+                ) {
+                    state.citySuggestions.forEach { suggestion ->
+                        DropdownMenuItem(
+                            text = { Text(suggestion.displayName()) },
+                            onClick = {
+                                onAction(HomeAction.OnCitySelected(index, suggestion))
+                            }
+                        )
+                    }
+                }
+            }
+        }
+        
+        Button(
+            onClick = { onAction(HomeAction.OnAddDestination) },
+            enabled = state.destinations.size < 3 // Limit to 3 destinations
+        ) {
+            Icon(Icons.Default.Add, null)
+            Spacer(modifier = Modifier.width(4.dp))
+            Text("Add Destination")
+        }
+    }
+}
+
+
+
 
 @Composable
 fun DestinationInputSection(
@@ -242,6 +299,8 @@ fun DestinationInputSection(
     }
 }
 
+
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TravelerTypeSection(
@@ -289,6 +348,8 @@ fun TravelerTypeSection(
         }
     }
 }
+
+
 
 @Composable
 fun DatesAndDurationSection(
@@ -379,6 +440,8 @@ fun DatesAndDurationSection(
     }
 }
 
+
+
 @Composable
 fun BudgetSection(
     selectedBudget: BudgetTier,
@@ -413,23 +476,17 @@ fun BudgetSection(
                         modifier = Modifier.padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "${budget.label} (${budget.priceLevel})",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = budget.description,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color.Gray
-                            )
-                        }
+                        Text(
+                            text = budget.label,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
                         if (isSelected) {
                             Icon(
                                 imageVector = Icons.Default.Check,
                                 contentDescription = "Selected",
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(start = 8.dp)
                             )
                         }
                     }
@@ -549,6 +606,7 @@ fun PlanTripButton(onClick: () -> Unit, isLoading: Boolean) {
     }
 }
 
+
 @Preview
 @Composable
 fun HomeScreenPreview() {
@@ -557,9 +615,10 @@ fun HomeScreenPreview() {
             state = HomeState(
                 userName = "Preview User",
                 destinations = listOf("Paris", "London"),
-                selectedBudget = BudgetTier.High
+                selectedBudget = BudgetTier.BUDGET
             ),
             onAction = {}
         )
     }
 }
+

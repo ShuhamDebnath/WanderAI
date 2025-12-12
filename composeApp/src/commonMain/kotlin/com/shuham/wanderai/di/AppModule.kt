@@ -1,6 +1,7 @@
 package com.shuham.wanderai.di
 
 import com.shuham.wanderai.data.OpenRouterService
+import com.shuham.wanderai.data.PlacesService
 import com.shuham.wanderai.data.local.AppDatabase
 import com.shuham.wanderai.data.repository.AuthRepositoryImpl
 import com.shuham.wanderai.data.repository.TripRepositoryImpl
@@ -45,9 +46,10 @@ val appModule = module {
         }
     }
     singleOf(::OpenRouterService)
+    singleOf(::PlacesService)
 
     // Database
-    single { getDatabase(this) }
+    single { getDatabase(this) } 
     single { get<AppDatabase>().tripDao() }
 
     // Platform Services
