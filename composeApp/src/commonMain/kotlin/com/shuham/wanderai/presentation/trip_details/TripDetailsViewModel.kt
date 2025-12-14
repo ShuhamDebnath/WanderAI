@@ -4,9 +4,6 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
-import com.shuham.wanderai.data.PlacesService
-import com.shuham.wanderai.data.model.Activity
-import com.shuham.wanderai.data.model.ActivityOption
 import com.shuham.wanderai.domain.repository.TripRepository
 import com.shuham.wanderai.navigation.TripDetails
 import kotlinx.coroutines.channels.Channel
@@ -19,7 +16,7 @@ import kotlinx.coroutines.launch
 
 class TripDetailsViewModel(
     private val savedStateHandle: SavedStateHandle,
-    private val repository: TripRepository,
+    private val repository: TripRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(TripDetailsState())
@@ -53,12 +50,12 @@ class TripDetailsViewModel(
                 _state.update { it.copy(selectedDay = action.index) }
             }
             is TripDetailsAction.OnActivityClicked -> {
+                // Image URL is now already pre-loaded in the activity object
                 _state.update { it.copy(selectedActivity = action.activity, selectedOption = null) }
-                fetchImageForActivity(action.activity)
             }
             is TripDetailsAction.OnOptionClicked -> {
+                // Image URL is now already pre-loaded in the option object
                 _state.update { it.copy(selectedOption = action.option, selectedActivity = null) }
-                fetchImageForOption(action.option)
             }
             TripDetailsAction.OnDismissBottomSheet -> {
                 _state.update { it.copy(selectedActivity = null, selectedOption = null) }
@@ -72,45 +69,6 @@ class TripDetailsViewModel(
                 }
             }
             TripDetailsAction.OnAddActivityClicked -> { /* Placeholder */ }
-        }
-    }
-
-    private fun fetchImageForActivity(activity: Activity) {
-        if (activity.placeName == null) return
-        viewModelScope.launch {
-            val imageUrl = repository.getPlaceImageUrl(activity.placeName)
-            _state.update { currentState ->
-                val updatedTrip = currentState.trip?.let { trip ->
-                    trip.copy(days = trip.days.map { day ->
-                        day.copy(sections = day.sections.map { section ->
-                            section.copy(activities = section.activities.map { act ->
-                                if (act == activity) act.copy(imageUrl = imageUrl) else act
-                            })
-                        })
-                    })
-                }
-                currentState.copy(trip = updatedTrip, selectedActivity = updatedTrip?.days?.flatMap { it.sections }?.flatMap { it.activities }?.find { it == activity })
-            }
-        }
-    }
-
-    private fun fetchImageForOption(option: ActivityOption) {
-        viewModelScope.launch {
-            val imageUrl = repository.getPlaceImageUrl(option.name)
-            _state.update { currentState ->
-                val updatedTrip = currentState.trip?.let { trip ->
-                    trip.copy(days = trip.days.map { day ->
-                        day.copy(sections = day.sections.map { section ->
-                            section.copy(activities = section.activities.map { act ->
-                                act.copy(options = act.options?.map { opt ->
-                                    if (opt == option) opt.copy(imageUrl = imageUrl) else opt
-                                })
-                            })
-                        })
-                    })
-                }
-                currentState.copy(trip = updatedTrip, selectedOption = updatedTrip?.days?.flatMap { it.sections }?.flatMap { it.activities }?.flatMap { it.options ?: emptyList() }?.find { it == option })
-            }
         }
     }
 }

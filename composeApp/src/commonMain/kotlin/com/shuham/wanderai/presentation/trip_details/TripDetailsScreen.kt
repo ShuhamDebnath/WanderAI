@@ -241,18 +241,18 @@ fun TripDetailsScreen(
             ModalBottomSheet(
                 onDismissRequest = { onAction(TripDetailsAction.OnDismissBottomSheet) },
                 sheetState = bottomSheetState,
-                containerColor = Color.White
+                containerColor = MaterialTheme.colorScheme.surface
             ) {
                 if (state.selectedActivity != null) {
                     ActivityDetailsContent(
                         activity = state.selectedActivity,
-                        imageUrl = state.selectedImage, // Pass the image from state
+                        //imageUrl = state.selectedImage, // Pass the image from state
                         onNavigate = { onAction(TripDetailsAction.OnNavigateToMap) }
                     )
                 } else if (state.selectedOption != null) {
                     OptionDetailsContent(
                         option = state.selectedOption,
-                        imageUrl = state.selectedImage, // Pass the image from state
+                        //imageUrl = state.selectedImage, // Pass the image from state
                         onNavigate = { onAction(TripDetailsAction.OnNavigateToMap) }
                     )
                 }
@@ -531,277 +531,368 @@ fun SmallChoiceCard(option: ActivityOption, onClick: () -> Unit) {
 }
 
 @Composable
-fun ActivityDetailsContent(
-    activity: Activity,
-    imageUrl: String?,
-    onNavigate: () -> Unit
-) {
-    val searchQuery = activity.placeName ?: activity.title ?: ""
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-    ) {
-        // Hero Image Area
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(250.dp)
-        ) {
-            if (imageUrl != null) {
-                AsyncImage(
-                    model = imageUrl,
-                    contentDescription = searchQuery,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            } else {
-                // Placeholder
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(OceanTeal.copy(alpha = 0.1f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (searchQuery.isNotEmpty()) {
-                        CircularProgressIndicator(color = OceanTeal)
-                    } else {
-                        Icon(Icons.Default.Place, null, tint = OceanTeal.copy(0.5f), modifier = Modifier.size(48.dp))
-                    }
-                }
-            }
-
-            // Gradient Scrim
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f)),
-                            startY = 100f,
-                            endY = Float.POSITIVE_INFINITY
-                        )
-                    )
-            )
-
-            // Title overlaid on image
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(24.dp)
-            ) {
-                // Category Chip
-                Text(
-                    text = activity.type.replace("_", " "),
-                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                    color = Color.Black,
-                    modifier = Modifier
-                        .background(Color.White, RoundedCornerShape(4.dp))
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = activity.placeName ?: activity.title ?: "Details",
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                )
-            }
-        }
+fun ActivityDetailsContent(activity: Activity, onNavigate: () -> Unit) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        val imageUrl = activity.imageUrl ?: "https://loremflickr.com/800/400/${(activity.placeName ?: activity.title ?: "travel").replace(" ", ",")},landmark"
+        AsyncImage(
+            model = imageUrl,
+            contentDescription = activity.placeName,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxWidth().height(250.dp)
+        )
 
         Column(modifier = Modifier.padding(24.dp)) {
-            // Info Row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                InfoChip(icon = Icons.Default.AccessTime, text = activity.time ?: "--:--")
-                if (activity.estimatedDuration != null) {
-                    InfoChip(icon = Icons.Default.Timer, text = activity.estimatedDuration)
-                }
-                if (activity.priceLevel != null) {
-                    InfoChip(icon = Icons.Default.AttachMoney, text = activity.priceLevel)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // INSIDER TIP
-            if (!activity.insiderTip.isNullOrBlank()) {
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = SageGreen.copy(alpha = 0.15f)),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.Top) {
-                        Icon(
-                            Icons.Default.Lightbulb,
-                            contentDescription = "Tip",
-                            tint = OceanTeal,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                text = "Insider Tip",
-                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                                color = OceanTeal
-                            )
-                            Text(
-                                text = activity.insiderTip,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Color.Black.copy(alpha = 0.8f)
-                            )
-                        }
-                    }
-                }
-                Spacer(modifier = Modifier.height(24.dp))
-            }
-
-            // Description
             Text(
-                text = "About",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = Color.Black
+                text = activity.placeName ?: activity.title ?: "Details",
+                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = activity.description ?: "No description available.",
-                style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 24.sp),
-                color = Color.Gray
+                text = activity.time ?: "",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Navigate Button
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = activity.description ?: "No description available.",
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Spacer(modifier = Modifier.height(24.dp))
             Button(
                 onClick = onNavigate,
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = OceanTeal),
-                shape = RoundedCornerShape(16.dp)
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
-                Icon(Icons.Default.Navigation, contentDescription = null)
+                Icon(Icons.Default.Navigation, null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Navigate on Map", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                Text("Navigate")
             }
-            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
 
 @Composable
-fun OptionDetailsContent(
-    option: ActivityOption,
-    imageUrl: String?,
-    onNavigate: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-    ) {
-        Box(
+fun OptionDetailsContent(option: ActivityOption, onNavigate: () -> Unit) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        val imageUrl = option.imageUrl ?: "https://loremflickr.com/800/400/${option.name.replace(" ", ",")},food"
+        AsyncImage(
+            model = imageUrl,
+            contentDescription = option.name,
+            contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxWidth().height(250.dp)
-        ) {
-            if (imageUrl != null) {
-                AsyncImage(
-                    model = imageUrl,
-                    contentDescription = option.name,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            } else {
-                Box(
-                    modifier = Modifier.fillMaxSize().background(OceanTeal.copy(alpha = 0.1f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(color = OceanTeal)
-                }
-            }
-
-            // Gradient
-            Box(
-                modifier = Modifier.fillMaxSize().background(
-                    Brush.verticalGradient(
-                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f)),
-                        startY = 100f,
-                        endY = Float.POSITIVE_INFINITY
-                    )
-                )
-            )
-
-            Column(
-                modifier = Modifier.align(Alignment.BottomStart).padding(24.dp)
-            ) {
-                if (option.isRecommended) {
-                    Text(
-                        text = "Recommended",
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                        color = Color.White,
-                        modifier = Modifier
-                            .background(SunsetCoral, RoundedCornerShape(4.dp))
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-                Text(
-                    text = option.name,
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                )
-            }
-        }
+        )
 
         Column(modifier = Modifier.padding(24.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                InfoChip(icon = Icons.Default.AttachMoney, text = option.priceLevel)
+            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = option.name,
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    text = option.priceLevel,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
             Text(
                 text = option.tag,
-                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                color = SageGreen
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.tertiary
             )
-
             Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = "About",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = Color.Black
-            )
-            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = option.description,
-                style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 24.sp),
-                color = Color.Gray
+                style = MaterialTheme.typography.bodyLarge
             )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
+            Spacer(modifier = Modifier.height(24.dp))
             Button(
                 onClick = onNavigate,
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = OceanTeal),
-                shape = RoundedCornerShape(16.dp)
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
-                Icon(Icons.Default.Navigation, contentDescription = null)
+                Icon(Icons.Default.Navigation, null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Navigate on Map", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                Text("Navigate")
             }
-            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
+
+//@Composable
+//fun ActivityDetailsContent(
+//    activity: Activity,
+//    imageUrl: String?,
+//    onNavigate: () -> Unit
+//) {
+//    val searchQuery = activity.placeName ?: activity.title ?: ""
+//
+//    Column(
+//        modifier = Modifier
+//            .fillMaxWidth()
+//            .verticalScroll(rememberScrollState())
+//    ) {
+//        // Hero Image Area
+//        Box(
+//            modifier = Modifier
+//                .fillMaxWidth()
+//                .height(250.dp)
+//        ) {
+//            if (imageUrl != null) {
+//                AsyncImage(
+//                    model = imageUrl,
+//                    contentDescription = searchQuery,
+//                    contentScale = ContentScale.Crop,
+//                    modifier = Modifier.fillMaxSize()
+//                )
+//            } else {
+//                // Placeholder
+//                Box(
+//                    modifier = Modifier
+//                        .fillMaxSize()
+//                        .background(OceanTeal.copy(alpha = 0.1f)),
+//                    contentAlignment = Alignment.Center
+//                ) {
+//                    if (searchQuery.isNotEmpty()) {
+//                        CircularProgressIndicator(color = OceanTeal)
+//                    } else {
+//                        Icon(Icons.Default.Place, null, tint = OceanTeal.copy(0.5f), modifier = Modifier.size(48.dp))
+//                    }
+//                }
+//            }
+//
+//            // Gradient Scrim
+//            Box(
+//                modifier = Modifier
+//                    .fillMaxSize()
+//                    .background(
+//                        Brush.verticalGradient(
+//                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f)),
+//                            startY = 100f,
+//                            endY = Float.POSITIVE_INFINITY
+//                        )
+//                    )
+//            )
+//
+//            // Title overlaid on image
+//            Column(
+//                modifier = Modifier
+//                    .align(Alignment.BottomStart)
+//                    .padding(24.dp)
+//            ) {
+//                // Category Chip
+//                Text(
+//                    text = activity.type.replace("_", " "),
+//                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+//                    color = Color.Black,
+//                    modifier = Modifier
+//                        .background(Color.White, RoundedCornerShape(4.dp))
+//                        .padding(horizontal = 8.dp, vertical = 4.dp)
+//                )
+//                Spacer(modifier = Modifier.height(8.dp))
+//                Text(
+//                    text = activity.placeName ?: activity.title ?: "Details",
+//                    style = MaterialTheme.typography.headlineMedium.copy(
+//                        fontWeight = FontWeight.Bold,
+//                        color = Color.White
+//                    )
+//                )
+//            }
+//        }
+//
+//        Column(modifier = Modifier.padding(24.dp)) {
+//            // Info Row
+//            Row(
+//                modifier = Modifier.fillMaxWidth(),
+//                horizontalArrangement = Arrangement.spacedBy(16.dp)
+//            ) {
+//                InfoChip(icon = Icons.Default.AccessTime, text = activity.time ?: "--:--")
+//                if (activity.estimatedDuration != null) {
+//                    InfoChip(icon = Icons.Default.Timer, text = activity.estimatedDuration)
+//                }
+//                if (activity.priceLevel != null) {
+//                    InfoChip(icon = Icons.Default.AttachMoney, text = activity.priceLevel)
+//                }
+//            }
+//
+//            Spacer(modifier = Modifier.height(24.dp))
+//
+//            // INSIDER TIP
+//            if (!activity.insiderTip.isNullOrBlank()) {
+//                Card(
+//                    colors = CardDefaults.cardColors(containerColor = SageGreen.copy(alpha = 0.15f)),
+//                    shape = RoundedCornerShape(12.dp),
+//                    modifier = Modifier.fillMaxWidth()
+//                ) {
+//                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.Top) {
+//                        Icon(
+//                            Icons.Default.Lightbulb,
+//                            contentDescription = "Tip",
+//                            tint = OceanTeal,
+//                            modifier = Modifier.size(24.dp)
+//                        )
+//                        Spacer(modifier = Modifier.width(12.dp))
+//                        Column {
+//                            Text(
+//                                text = "Insider Tip",
+//                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+//                                color = OceanTeal
+//                            )
+//                            Text(
+//                                text = activity.insiderTip,
+//                                style = MaterialTheme.typography.bodyMedium,
+//                                color = Color.Black.copy(alpha = 0.8f)
+//                            )
+//                        }
+//                    }
+//                }
+//                Spacer(modifier = Modifier.height(24.dp))
+//            }
+//
+//            // Description
+//            Text(
+//                text = "About",
+//                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+//                color = Color.Black
+//            )
+//            Spacer(modifier = Modifier.height(8.dp))
+//            Text(
+//                text = activity.description ?: "No description available.",
+//                style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 24.sp),
+//                color = Color.Gray
+//            )
+//
+//            Spacer(modifier = Modifier.height(32.dp))
+//
+//            // Navigate Button
+//            Button(
+//                onClick = onNavigate,
+//                modifier = Modifier.fillMaxWidth().height(56.dp),
+//                colors = ButtonDefaults.buttonColors(containerColor = OceanTeal),
+//                shape = RoundedCornerShape(16.dp)
+//            ) {
+//                Icon(Icons.Default.Navigation, contentDescription = null)
+//                Spacer(modifier = Modifier.width(8.dp))
+//                Text("Navigate on Map", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+//            }
+//            Spacer(modifier = Modifier.height(24.dp))
+//        }
+//    }
+//}
+//
+//@Composable
+//fun OptionDetailsContent(
+//    option: ActivityOption,
+//    imageUrl: String?,
+//    onNavigate: () -> Unit
+//) {
+//    Column(
+//        modifier = Modifier
+//            .fillMaxWidth()
+//            .verticalScroll(rememberScrollState())
+//    ) {
+//        Box(
+//            modifier = Modifier.fillMaxWidth().height(250.dp)
+//        ) {
+//            if (imageUrl != null) {
+//                AsyncImage(
+//                    model = imageUrl,
+//                    contentDescription = option.name,
+//                    contentScale = ContentScale.Crop,
+//                    modifier = Modifier.fillMaxSize()
+//                )
+//            } else {
+//                Box(
+//                    modifier = Modifier.fillMaxSize().background(OceanTeal.copy(alpha = 0.1f)),
+//                    contentAlignment = Alignment.Center
+//                ) {
+//                    CircularProgressIndicator(color = OceanTeal)
+//                }
+//            }
+//
+//            // Gradient
+//            Box(
+//                modifier = Modifier.fillMaxSize().background(
+//                    Brush.verticalGradient(
+//                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f)),
+//                        startY = 100f,
+//                        endY = Float.POSITIVE_INFINITY
+//                    )
+//                )
+//            )
+//
+//            Column(
+//                modifier = Modifier.align(Alignment.BottomStart).padding(24.dp)
+//            ) {
+//                if (option.isRecommended) {
+//                    Text(
+//                        text = "Recommended",
+//                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+//                        color = Color.White,
+//                        modifier = Modifier
+//                            .background(SunsetCoral, RoundedCornerShape(4.dp))
+//                            .padding(horizontal = 8.dp, vertical = 4.dp)
+//                    )
+//                    Spacer(modifier = Modifier.height(8.dp))
+//                }
+//                Text(
+//                    text = option.name,
+//                    style = MaterialTheme.typography.headlineMedium.copy(
+//                        fontWeight = FontWeight.Bold,
+//                        color = Color.White
+//                    )
+//                )
+//            }
+//        }
+//
+//        Column(modifier = Modifier.padding(24.dp)) {
+//            Row(
+//                modifier = Modifier.fillMaxWidth(),
+//                horizontalArrangement = Arrangement.spacedBy(16.dp)
+//            ) {
+//                InfoChip(icon = Icons.Default.AttachMoney, text = option.priceLevel)
+//            }
+//
+//            Spacer(modifier = Modifier.height(16.dp))
+//
+//            Text(
+//                text = option.tag,
+//                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+//                color = SageGreen
+//            )
+//
+//            Spacer(modifier = Modifier.height(16.dp))
+//
+//            Text(
+//                text = "About",
+//                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+//                color = Color.Black
+//            )
+//            Spacer(modifier = Modifier.height(8.dp))
+//            Text(
+//                text = option.description,
+//                style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 24.sp),
+//                color = Color.Gray
+//            )
+//
+//            Spacer(modifier = Modifier.height(32.dp))
+//
+//            Button(
+//                onClick = onNavigate,
+//                modifier = Modifier.fillMaxWidth().height(56.dp),
+//                colors = ButtonDefaults.buttonColors(containerColor = OceanTeal),
+//                shape = RoundedCornerShape(16.dp)
+//            ) {
+//                Icon(Icons.Default.Navigation, contentDescription = null)
+//                Spacer(modifier = Modifier.width(8.dp))
+//                Text("Navigate on Map", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+//            }
+//            Spacer(modifier = Modifier.height(24.dp))
+//        }
+//    }
+//}
 
 // Helper for Info Chips (Time, Price, etc)
 @Composable

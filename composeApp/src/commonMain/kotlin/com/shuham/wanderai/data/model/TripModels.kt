@@ -17,7 +17,7 @@ data class TripRequest(
 
 @Serializable
 data class TripResponse(
-    @Transient var id: String = "",
+    var id: String = "",
     val tripName: String,
     val destinations: List<String>,
     val days: List<DayPlan>
@@ -50,7 +50,7 @@ data class Activity(
     val insiderTip: String? = null,
     val title: String? = null,
     val options: List<ActivityOption>? = null,
-    @Transient var imageUrl: String? = null // For session-specific image caching
+    var imageUrl: String? = null // For session-specific image caching
 )
 
 @Serializable
@@ -66,5 +66,5 @@ data class ActivityOption(
     val priceLevel: String,
     val description: String,
     val isRecommended: Boolean,
-    @Transient var imageUrl: String? = null // Also add here for consistency in bottom sheet
+    var imageUrl: String? = null // Also add here for consistency in bottom sheet
 )

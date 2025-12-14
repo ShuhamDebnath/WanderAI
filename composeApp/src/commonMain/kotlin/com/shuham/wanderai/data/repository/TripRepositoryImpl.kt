@@ -4,11 +4,15 @@ import com.shuham.wanderai.data.OpenRouterService
 import com.shuham.wanderai.data.PlacesService
 import com.shuham.wanderai.data.local.TripDao
 import com.shuham.wanderai.data.local.TripEntity
+import com.shuham.wanderai.data.model.Activity
 import com.shuham.wanderai.data.model.TripRequest
 import com.shuham.wanderai.data.model.TripResponse
 import com.shuham.wanderai.domain.repository.TripRepository
 import com.shuham.wanderai.util.LocationService
 import com.shuham.wanderai.util.NetworkResult
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -34,9 +38,9 @@ class TripRepositoryImpl(
                 travelers = request.travelers,
                 interests = request.interests,
                 diet = request.diet
-            )?.let {
-                // Enrich with coordinates before saving
-                val enrichedTrip = enrichTripWithCoordinates(it)
+            )?.let { tripResponse ->
+                // Enrich with coordinates AND images before saving
+                val enrichedTrip = enrichTripData(tripResponse)
                 val savedTripId = saveTrip(enrichedTrip)
                 NetworkResult.Success(enrichedTrip.copy(id = savedTripId))
             } ?: NetworkResult.Error("Failed to generate itinerary. The response from the AI was empty.")
@@ -48,29 +52,71 @@ class TripRepositoryImpl(
         return networkResult
     }
     
-    private suspend fun enrichTripWithCoordinates(trip: TripResponse): TripResponse {
+    // Updated to enrich both Coordinates and Images in parallel
+    private suspend fun enrichTripData(trip: TripResponse): TripResponse = coroutineScope {
         val updatedDays = trip.days.map { day ->
-            val updatedSections = day.sections.map { section ->
-                val updatedActivities = section.activities.map { activity ->
-                    if (activity.coordinates == null && activity.placeName != null) {
-                        val coords = locationService.getCoordinates(activity.placeName)
-                        activity.copy(coordinates = coords)
-                    } else {
-                        activity
+            async {
+                val updatedSections = day.sections.map { section ->
+                    val updatedActivities = section.activities.map { activity ->
+                        enrichActivity(activity, day.city)
                     }
+                    section.copy(activities = updatedActivities)
                 }
-                section.copy(activities = updatedActivities)
+                day.copy(sections = updatedSections)
             }
-            day.copy(sections = updatedSections)
         }
-        return trip.copy(days = updatedDays)
+        trip.copy(days = updatedDays.awaitAll())
+    }
+
+    private suspend fun enrichActivity(activity: Activity, city : String): Activity = coroutineScope {
+        // 1. Coordinates
+        val coordsDeferred = async {
+            if (activity.coordinates == null && activity.placeName != null) {
+                locationService.getCoordinates(activity.placeName)
+            } else {
+                activity.coordinates
+            }
+        }
+
+        // 2. Image URL (Primary Activity)
+        val imageDeferred = async {
+            if (activity.imageUrl == null) {
+                val query = activity.placeName ?: activity.title
+                if (query != null) placesService.getPlaceImageUrl(query) else null
+            } else {
+                activity.imageUrl
+            }
+        }
+        
+        // 3. Image URLs for Options (if any)
+        val optionsDeferred = activity.options?.map { option ->
+            async {
+                if (option.imageUrl == null) {
+                    val url = placesService.getPlaceImageUrl(option.name)
+                    option.copy(imageUrl = url)
+                } else {
+                    option
+                }
+            }
+        }
+
+        val newCoords = coordsDeferred.await()
+        val newImage = imageDeferred.await()
+        val newOptions = optionsDeferred?.awaitAll()
+
+        activity.copy(
+            coordinates = newCoords,
+            imageUrl = newImage,
+            options = newOptions
+        )
     }
 
     override suspend fun saveTrip(trip: TripResponse): String {
         val uniqueId = (trip.tripName.take(10) + "_" + System.currentTimeMillis()).filter { it.isLetterOrDigit() }
         val tripWithId = trip.copy(id = uniqueId)
         val tripJson = json.encodeToString(tripWithId)
-        
+
+
         val entity = TripEntity(
             id = uniqueId,
             tripName = tripWithId.tripName,
@@ -78,9 +124,30 @@ class TripRepositoryImpl(
             createdAt = System.currentTimeMillis(),
             tripDataJson = tripJson
         )
-        
+
+
         tripDao.insertTrip(entity)
         return uniqueId
+    }
+
+    override suspend fun updateTrip(trip: TripResponse) {
+        val tripJson = json.encodeToString(trip)
+        val existingEntity = tripDao.getTripById(trip.id)
+        
+        if (existingEntity != null) {
+            val updatedEntity = existingEntity.copy(tripDataJson = tripJson)
+            tripDao.updateTrip(updatedEntity)
+        } else {
+            // Fallback: Re-create minimal entity if somehow missing, though rare
+             val entity = TripEntity(
+                id = trip.id,
+                tripName = trip.tripName,
+                destinations = trip.destinations.joinToString(", "),
+                createdAt = System.currentTimeMillis(),
+                tripDataJson = tripJson
+            )
+            tripDao.insertTrip(entity)
+        }
     }
 
     override suspend fun getTrip(tripId: String): TripResponse? {
@@ -113,6 +180,4 @@ class TripRepositoryImpl(
     override suspend fun getPlaceImageUrl(placeName: String): String? {
         return placesService.getPlaceImageUrl(placeName)
     }
-
-
 }

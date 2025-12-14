@@ -351,7 +351,7 @@ class OpenRouterService(private val client: HttpClient) {
             }
 
         } catch (e: Exception) {
-            println(" error $ { e.message }")
+            println(" error ${ e.message }")
             e.printStackTrace()
             null
         }

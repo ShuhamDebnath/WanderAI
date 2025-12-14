@@ -69,6 +69,7 @@ class PlacesService(private val client: HttpClient) {
             val originalImage = pages?.get(firstPageKey)?.jsonObject?.get("original")?.jsonObject
             val imageUrl = originalImage?.get("source")?.jsonPrimitive?.content
 
+            println("getPlaceImageUrl(placeName : $placeName) url : $imageUrl")
             imageUrl
         } catch (e: Exception) {
             e.printStackTrace()

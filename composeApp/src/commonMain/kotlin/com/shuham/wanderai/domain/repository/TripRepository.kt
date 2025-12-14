@@ -9,7 +9,8 @@ interface TripRepository {
     suspend fun getTrip(tripId: String): TripResponse?
     suspend fun getAllTrips(): List<Pair<String, TripResponse>>
     suspend fun saveTrip(trip: TripResponse): String
-    suspend fun deleteTrip(tripId: String) // New function
+    suspend fun updateTrip(trip: TripResponse) // New function
+    suspend fun deleteTrip(tripId: String)
 
     suspend fun getPlaceImageUrl(placeName: String): String?
 }
