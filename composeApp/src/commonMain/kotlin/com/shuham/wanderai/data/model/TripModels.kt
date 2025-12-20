@@ -1,7 +1,6 @@
 package com.shuham.wanderai.data.model
 
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 
 @Serializable
 data class TripRequest(
@@ -50,7 +49,7 @@ data class Activity(
     val insiderTip: String? = null,
     val title: String? = null,
     val options: List<ActivityOption>? = null,
-    var imageUrl: String? = null // For session-specific image caching
+    var imageUrl: String? = null // REMOVED @Transient
 )
 
 @Serializable
@@ -66,5 +65,5 @@ data class ActivityOption(
     val priceLevel: String,
     val description: String,
     val isRecommended: Boolean,
-    var imageUrl: String? = null // Also add here for consistency in bottom sheet
+    var imageUrl: String? = null // REMOVED @Transient
 )

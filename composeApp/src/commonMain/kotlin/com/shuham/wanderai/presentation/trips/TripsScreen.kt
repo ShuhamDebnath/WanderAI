@@ -25,6 +25,8 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -80,11 +82,23 @@ fun TripsScreen(
                     textAlign = TextAlign.Center
                 )
 
-                IconButton(
-                    onClick = { /* Sort Logic */ },
-                    modifier = Modifier.align(Alignment.CenterEnd)
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = "Sort")
+                Box(modifier = Modifier.align(Alignment.CenterEnd)) {
+                    IconButton(onClick = { viewModel.onAction(TripsAction.OnSortClicked) }) {
+                        Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = "Sort")
+                    }
+                    DropdownMenu(
+                        expanded = state.showSortMenu,
+                        onDismissRequest = { viewModel.onAction(TripsAction.OnDismissSortMenu) }
+                    ) {
+                        SortBy.entries.forEach { sortBy ->
+                            DropdownMenuItem(
+                                text = { Text(sortBy.displayName) },
+                                onClick = {
+                                    viewModel.onAction(TripsAction.OnSortSelected(sortBy))
+                                }
+                            )
+                        }
+                    }
                 }
             }
 
@@ -118,7 +132,12 @@ fun TripsScreen(
                     Text("No saved trips yet.", color = Color.Gray)
                 }
             } else {
-                val filteredTrips = state.trips.filter { it.tripData.tripName.contains(state.searchQuery, ignoreCase = true) }
+                val filteredTrips = if (state.searchQuery.isBlank()) {
+                    state.trips
+                } else {
+                    state.trips.filter { it.tripData.tripName.contains(state.searchQuery, ignoreCase = true) }
+                }
+                
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     contentPadding = PaddingValues(bottom = 16.dp)
@@ -185,28 +204,7 @@ fun TripCard(trip: TripItem, onClick: () -> Unit, onDeleteClick: () -> Unit) {
                         )
                     )
             )
-
-            // Top Left Status Chip
-            Box(
-                modifier = Modifier
-                    .padding(16.dp)
-                    .background(
-                        color = if (trip.status == "Completed") Color(0xFF4CAF50) else Color(0xFFFFC107),
-                        shape = RoundedCornerShape(50)
-                    )
-                    .padding(horizontal = 10.dp, vertical = 4.dp)
-                    .align(Alignment.TopStart)
-            ) {
-                Text(
-                    text = trip.status,
-                    color = Color.White,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            // Top Right Delete Button
+            
             IconButton(
                 onClick = onDeleteClick,
                 modifier = Modifier
@@ -221,7 +219,6 @@ fun TripCard(trip: TripItem, onClick: () -> Unit, onDeleteClick: () -> Unit) {
                 )
             }
 
-            // Bottom Left Details
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomStart)

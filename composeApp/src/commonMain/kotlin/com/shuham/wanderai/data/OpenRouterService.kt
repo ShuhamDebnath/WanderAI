@@ -19,7 +19,7 @@ class OpenRouterService(private val client: HttpClient) {
     private val apiKey = BuildConfig.OPENROUTER_API_KEY
     private val url = "https://openrouter.ai/api/v1/chat/completions"
 
-    val models = listOf("amazon/nova-2-lite-v1:free", "google/gemini-2.0-flash-exp:free", "openai/gpt-oss-20b:free")
+    val models = listOf("nvidia/nemotron-3-nano-30b-a3b:free","amazon/nova-2-lite-v1:free", "google/gemini-2.0-flash-exp:free", "openai/gpt-oss-20b:free")
 
     private val model = models[0]
 

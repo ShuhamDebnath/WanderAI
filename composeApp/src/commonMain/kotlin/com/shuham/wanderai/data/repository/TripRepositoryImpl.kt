@@ -68,7 +68,7 @@ class TripRepositoryImpl(
         trip.copy(days = updatedDays.awaitAll())
     }
 
-    private suspend fun enrichActivity(activity: Activity, city : String): Activity = coroutineScope {
+    private suspend fun enrichActivity(activity: Activity, city: String): Activity = coroutineScope {
         // 1. Coordinates
         val coordsDeferred = async {
             if (activity.coordinates == null && activity.placeName != null) {
@@ -82,7 +82,7 @@ class TripRepositoryImpl(
         val imageDeferred = async {
             if (activity.imageUrl == null) {
                 val query = activity.placeName ?: activity.title
-                if (query != null) placesService.getPlaceImageUrl(query) else null
+                if (query != null) placesService.getPlaceImageUrl("$query, $city") else null
             } else {
                 activity.imageUrl
             }
