@@ -39,6 +39,7 @@ This project is built following modern Android & KMP best practices, emphasizing
 - **Dependency Injection:** Using **Koin** for managing dependencies across the entire application.
 - **`expect`/`actual` for Platform APIs:** Used for platform-specific implementations like the native MapView, LocationService, and Database drivers.
 
+
 ## 🛠️ Built With
 
 - **Core:** [Kotlin](https://kotlinlang.org/), [Coroutines](https://kotlinlang.org/docs/coroutines-overview.html) & [Flow](https://kotlinlang.org/docs/flow.html)
